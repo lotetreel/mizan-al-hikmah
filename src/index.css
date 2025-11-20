@@ -1,0 +1,66 @@
+@import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@100..900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
+
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+@theme {
+  --font-sans: 'Inter', 'sans-serif';
+  --font-serif: 'Playfair Display', 'serif';
+  --font-arabic: 'Amiri', 'serif';
+
+  --color-primary-50: #f0f9ff;
+  --color-primary-100: #e0f2fe;
+  --color-primary-200: #bae6fd;
+  --color-primary-300: #7dd3fc;
+  --color-primary-400: #38bdf8;
+  --color-primary-500: #0ea5e9;
+  --color-primary-600: #0284c7;
+  --color-primary-700: #0369a1;
+  --color-primary-800: #075985;
+  --color-primary-900: #0c4a6e;
+  --color-primary-950: #082f49;
+
+  --color-gold-50: #fbf9eb;
+  --color-gold-100: #f5f0c8;
+  --color-gold-200: #ede092;
+  --color-gold-300: #e4cd56;
+  --color-gold-400: #dec034;
+  --color-gold-500: #d1aa22;
+  --color-gold-600: #b38819;
+  --color-gold-700: #8f6516;
+  --color-gold-800: #76511a;
+  --color-gold-900: #65431d;
+  --color-gold-950: #3a240d;
+}
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-50 antialiased;
+  }
+}
+
+/* Custom scrollbar for a premium feel */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 dark:bg-slate-700 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-400 dark:bg-slate-600;
+}

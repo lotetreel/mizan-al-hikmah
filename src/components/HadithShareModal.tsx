@@ -1,0 +1,139 @@
+import { useRef, useState } from 'react';
+import { toPng } from 'html-to-image';
+import { X, Download, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import type { Hadith } from '../lib/types';
+
+interface HadithShareModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    hadith: Hadith;
+    chapterTitle?: string;
+}
+
+export function HadithShareModal({ isOpen, onClose, hadith, chapterTitle }: HadithShareModalProps) {
+    const ref = useRef<HTMLDivElement>(null);
+    const [isGenerating, setIsGenerating] = useState(false);
+
+    const handleDownload = async () => {
+        if (ref.current === null) {
+            return;
+        }
+
+        setIsGenerating(true);
+        try {
+            const dataUrl = await toPng(ref.current, {
+                cacheBust: true,
+                pixelRatio: 2, // Higher quality
+                backgroundColor: '#0f172a' // Ensure dark background for the image
+            });
+
+            const link = document.createElement('a');
+            link.download = `mizan-hadith-${hadith.hadith_num}.png`;
+            link.href = dataUrl;
+            link.click();
+        } catch (err) {
+            console.error('Failed to generate image', err);
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
+    return (
+        <AnimatePresence>
+            {isOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="relative bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden"
+                    >
+                        {/* Header */}
+                        <div className="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-800">
+                            <h3 className="font-serif font-bold text-lg text-slate-900 dark:text-white">
+                                Share Hadith
+                            </h3>
+                            <button
+                                onClick={onClose}
+                                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-500"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Preview Area */}
+                        <div className="p-8 bg-slate-100 dark:bg-slate-950 overflow-auto max-h-[70vh] flex justify-center">
+                            {/* The Frame to Capture */}
+                            <div
+                                ref={ref}
+                                className="w-full max-w-[600px] bg-slate-900 text-white p-12 relative overflow-hidden rounded-lg shadow-lg"
+                                style={{
+                                    backgroundImage: 'radial-gradient(circle at top right, #1e293b, #0f172a)',
+                                }}
+                            >
+                                {/* Decorative Border */}
+                                <div className="absolute inset-4 border border-gold-500/30 rounded-sm pointer-events-none" />
+                                <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')] pointer-events-none" />
+
+                                <div className="relative z-10 flex flex-col items-center text-center space-y-8">
+                                    {/* Header Icon/Text */}
+                                    <div className="text-gold-400 font-serif tracking-widest text-sm uppercase">
+                                        Mizan al Hikmah
+                                    </div>
+
+                                    {/* Content */}
+                                    <div className="space-y-6 w-full">
+                                        {chapterTitle && (
+                                            <div className="text-slate-400 text-sm font-serif uppercase tracking-wide">
+                                                {chapterTitle}
+                                            </div>
+                                        )}
+
+                                        <p className="font-arabic text-3xl leading-loose text-white" dir="rtl">
+                                            {hadith.arabic}
+                                        </p>
+
+                                        <div className="w-16 h-px bg-gold-500/50 mx-auto" />
+
+                                        <p className="font-serif text-lg leading-relaxed text-slate-200">
+                                            {hadith.english}
+                                        </p>
+                                    </div>
+
+                                    {/* Footer */}
+                                    <div className="pt-8 w-full flex justify-between items-end text-xs text-slate-500 font-mono">
+                                        <span>Hadith #{hadith.hadith_num}</span>
+                                        <span>mizan.app</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer Actions */}
+                        <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3 bg-white dark:bg-slate-900">
+                            <button
+                                onClick={onClose}
+                                className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDownload}
+                                disabled={isGenerating}
+                                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors disabled:opacity-50"
+                            >
+                                {isGenerating ? (
+                                    <Loader2 size={16} className="animate-spin" />
+                                ) : (
+                                    <Download size={16} />
+                                )}
+                                Download Image
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+        </AnimatePresence>
+    );
+}
