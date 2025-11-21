@@ -137,7 +137,7 @@ export function HadithShareModal({ isOpen, onClose, hadith, chapterTitle }: Hadi
                             {/* The Frame to Capture */}
                             <div
                                 ref={ref}
-                                className="w-full max-w-[600px] bg-slate-900 text-white px-8 pt-12 pb-20 md:px-12 md:pt-12 md:pb-20 relative overflow-hidden rounded-lg shadow-lg"
+                                className="w-full max-w-[600px] bg-slate-900 text-white px-8 pt-12 pb-32 md:px-12 md:pt-12 md:pb-32 relative overflow-hidden rounded-lg shadow-lg"
                                 style={{
                                     backgroundImage: 'radial-gradient(circle at top right, #1e293b, #0f172a)',
                                 }}
@@ -146,7 +146,7 @@ export function HadithShareModal({ isOpen, onClose, hadith, chapterTitle }: Hadi
                                 <div className="absolute inset-4 border border-gold-500/30 rounded-sm pointer-events-none" />
                                 <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')] pointer-events-none" />
 
-                                <div className="relative z-10 flex flex-col items-center text-center space-y-8">
+                                <div className="relative z-10 flex flex-col items-center text-center space-y-8 mb-8">
                                     {/* Header Icon/Text */}
                                     <div className="text-gold-400 font-serif tracking-widest text-sm uppercase">
                                         Mizan al Hikmah
