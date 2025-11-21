@@ -57,7 +57,7 @@ export function HadithShareModal({ isOpen, onClose, hadith, chapterTitle }: Hadi
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
-                        className="relative bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden"
+                        className="relative bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden max-h-[90vh] flex flex-col"
                     >
                         {/* Header */}
                         <div className="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-800">
@@ -126,7 +126,7 @@ export function HadithShareModal({ isOpen, onClose, hadith, chapterTitle }: Hadi
                         </div>
 
                         {/* Preview Area */}
-                        <div className="p-8 bg-slate-100 dark:bg-slate-950 overflow-auto max-h-[70vh] flex justify-center">
+                        <div className="p-8 bg-slate-100 dark:bg-slate-950 overflow-auto flex-1 flex justify-center">
                             {/* The Frame to Capture */}
                             <div
                                 ref={ref}
