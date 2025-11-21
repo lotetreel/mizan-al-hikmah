@@ -32,10 +32,17 @@ export function HadithShareModal({ isOpen, onClose, hadith, chapterTitle }: Hadi
 
         setIsGenerating(true);
         try {
-            const dataUrl = await toPng(ref.current, {
+            const element = ref.current;
+            const dataUrl = await toPng(element, {
                 cacheBust: true,
                 pixelRatio: 2, // Higher quality
-                backgroundColor: '#0f172a' // Ensure dark background for the image
+                backgroundColor: '#0f172a', // Ensure dark background for the image
+                height: element.scrollHeight,
+                style: {
+                    height: 'auto',
+                    maxHeight: 'none',
+                    overflow: 'visible'
+                }
             });
 
             const link = document.createElement('a');
