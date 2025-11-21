@@ -1,6 +1,7 @@
 import { Link, Outlet } from 'react-router-dom';
 import { ThemeToggle } from './ThemeToggle';
 import { SearchBar } from './SearchBar';
+import { FontSettingsPanel } from './FontSettingsPanel';
 import { BookOpen } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -25,6 +26,7 @@ export function Layout() {
                     </div>
 
                     <div className="flex items-center gap-2">
+                        <FontSettingsPanel />
                         <ThemeToggle />
                     </div>
                 </div>

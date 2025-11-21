@@ -11,9 +11,19 @@ interface HadithShareModalProps {
     chapterTitle?: string;
 }
 
+const ARABIC_FONTS = [
+    { value: 'arabic', label: 'Default' },
+    { value: 'Scheherazade New', label: 'Scheherazade' },
+    { value: 'Cairo', label: 'Cairo' },
+    { value: 'Noto Naskh Arabic', label: 'Noto Naskh' },
+];
+
 export function HadithShareModal({ isOpen, onClose, hadith, chapterTitle }: HadithShareModalProps) {
     const ref = useRef<HTMLDivElement>(null);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [arabicFontSize, setArabicFontSize] = useState(24);
+    const [englishFontSize, setEnglishFontSize] = useState(18);
+    const [arabicFontFamily, setArabicFontFamily] = useState('arabic');
 
     const handleDownload = async () => {
         if (ref.current === null) {
@@ -62,6 +72,59 @@ export function HadithShareModal({ isOpen, onClose, hadith, chapterTitle }: Hadi
                             </button>
                         </div>
 
+                        {/* Customization Controls */}
+                        <div className="p-4 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {/* Arabic Font Family */}
+                                <div className="space-y-2">
+                                    <label className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+                                        Arabic Font
+                                    </label>
+                                    <select
+                                        value={arabicFontFamily}
+                                        onChange={(e) => setArabicFontFamily(e.target.value)}
+                                        className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                                    >
+                                        {ARABIC_FONTS.map(font => (
+                                            <option key={font.value} value={font.value}>
+                                                {font.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Arabic Font Size */}
+                                <div className="space-y-2">
+                                    <label className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+                                        Arabic Size: {arabicFontSize}px
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min="16"
+                                        max="48"
+                                        value={arabicFontSize}
+                                        onChange={(e) => setArabicFontSize(Number(e.target.value))}
+                                        className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-primary-600"
+                                    />
+                                </div>
+
+                                {/* English Font Size */}
+                                <div className="space-y-2">
+                                    <label className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+                                        English Size: {englishFontSize}px
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min="12"
+                                        max="32"
+                                        value={englishFontSize}
+                                        onChange={(e) => setEnglishFontSize(Number(e.target.value))}
+                                        className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-primary-600"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Preview Area */}
                         <div className="p-8 bg-slate-100 dark:bg-slate-950 overflow-auto max-h-[70vh] flex justify-center">
                             {/* The Frame to Capture */}
@@ -90,13 +153,25 @@ export function HadithShareModal({ isOpen, onClose, hadith, chapterTitle }: Hadi
                                             </div>
                                         )}
 
-                                        <p className="font-arabic text-3xl leading-loose text-white" dir="rtl">
+                                        <p
+                                            className="leading-loose text-white"
+                                            dir="rtl"
+                                            style={{
+                                                fontFamily: arabicFontFamily === 'arabic' ? 'var(--font-arabic)' : `'${arabicFontFamily}', var(--font-arabic)`,
+                                                fontSize: `${arabicFontSize}px`
+                                            }}
+                                        >
                                             {hadith.arabic}
                                         </p>
 
                                         <div className="w-16 h-px bg-gold-500/50 mx-auto" />
 
-                                        <p className="font-serif text-lg leading-relaxed text-slate-200">
+                                        <p
+                                            className="font-serif leading-relaxed text-slate-200"
+                                            style={{
+                                                fontSize: `${englishFontSize}px`
+                                            }}
+                                        >
                                             {hadith.english}
                                         </p>
                                     </div>
@@ -104,7 +179,7 @@ export function HadithShareModal({ isOpen, onClose, hadith, chapterTitle }: Hadi
                                     {/* Footer */}
                                     <div className="pt-8 w-full flex justify-between items-end text-xs text-slate-500 font-mono">
                                         <span>Hadith #{hadith.hadith_num}</span>
-                                        <span>mizan.app</span>
+                                        <span>mizan-al-hikmah.web.app</span>
                                     </div>
                                 </div>
                             </div>

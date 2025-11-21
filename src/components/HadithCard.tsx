@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '../lib/utils';
 import { HadithShareModal } from './HadithShareModal';
+import { useFontSettings } from '../contexts/FontSettingsContext';
 
 interface HadithCardProps {
     hadith: Hadith;
@@ -15,6 +16,7 @@ interface HadithCardProps {
 export function HadithCard({ hadith, showChapterInfo, chapterTitle, sectionTitle }: HadithCardProps) {
     const [copied, setCopied] = useState(false);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+    const { settings } = useFontSettings();
 
     const copyToClipboard = () => {
         const text = `${hadith.arabic}\n\n${hadith.english}\n\n(Mizan al Hikmah, Hadith #${hadith.hadith_num})`;
@@ -47,12 +49,24 @@ export function HadithCard({ hadith, showChapterInfo, chapterTitle, sectionTitle
                         <span className="text-xs font-mono text-slate-400 shrink-0 mt-1">
                             #{hadith.hadith_num}
                         </span>
-                        <p className="font-arabic text-xl leading-loose text-slate-800 dark:text-slate-200 text-right" dir="rtl">
+                        <p
+                            className="leading-loose text-slate-800 dark:text-slate-200 text-right"
+                            dir="rtl"
+                            style={{
+                                fontFamily: settings.arabicFontFamily === 'arabic' ? 'var(--font-arabic)' : `'${settings.arabicFontFamily}', var(--font-arabic)`,
+                                fontSize: `${settings.arabicFontSize}px`
+                            }}
+                        >
                             {hadith.arabic}
                         </p>
                     </div>
 
-                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                    <p
+                        className="leading-relaxed text-slate-600 dark:text-slate-400"
+                        style={{
+                            fontSize: `${settings.englishFontSize}px`
+                        }}
+                    >
                         {hadith.english}
                     </p>
 

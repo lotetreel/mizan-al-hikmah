@@ -1,7 +1,6 @@
 import { Search } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 
 export function SearchBar() {
     const [query, setQuery] = useState('');
