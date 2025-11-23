@@ -137,19 +137,41 @@ export function HadithShareModal({ isOpen, onClose, hadith, chapterTitle }: Hadi
         if (ref.current === null) return null;
 
         const element = ref.current;
-        return await toPng(element, {
-            cacheBust: true,
-            pixelRatio: 2,
-            backgroundColor: selectedTheme.background.includes('gradient') ? undefined : selectedTheme.background,
-            width: 800,
-            height: element.scrollHeight,
-            style: {
-                height: 'auto',
-                maxHeight: 'none',
-                overflow: 'visible',
-                width: '800px'
-            }
-        });
+
+        // Store original width
+        const originalWidth = element.style.width;
+
+        // Temporarily set to 800px for image generation
+        element.style.width = '800px';
+        element.style.minWidth = '800px';
+        element.style.maxWidth = '800px';
+
+        try {
+            const dataUrl = await toPng(element, {
+                cacheBust: true,
+                pixelRatio: 2,
+                backgroundColor: selectedTheme.background.includes('gradient') ? undefined : selectedTheme.background,
+                height: element.scrollHeight,
+                style: {
+                    height: 'auto',
+                    maxHeight: 'none',
+                    overflow: 'visible'
+                }
+            });
+
+            // Restore original width
+            element.style.width = originalWidth;
+            element.style.minWidth = '';
+            element.style.maxWidth = '';
+
+            return dataUrl;
+        } catch (error) {
+            // Restore original width even on error
+            element.style.width = originalWidth;
+            element.style.minWidth = '';
+            element.style.maxWidth = '';
+            throw error;
+        }
     };
 
     const handleDownload = async () => {
