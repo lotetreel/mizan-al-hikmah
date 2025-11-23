@@ -123,7 +123,6 @@ export function HadithShareModal({ isOpen, onClose, hadith, chapterTitle }: Hadi
     const [englishFontSize, setEnglishFontSize] = useState(18);
     const [arabicFontFamily, setArabicFontFamily] = useState('arabic');
     const [selectedThemeId, setSelectedThemeId] = useState('munajat');
-    const [selectedRatio, setSelectedRatio] = useState<string | undefined>(undefined);
     const [showSettings, setShowSettings] = useState(false);
 
     const selectedTheme = THEMES.find(t => t.id === selectedThemeId) || THEMES[0];
@@ -335,34 +334,7 @@ export function HadithShareModal({ isOpen, onClose, hadith, chapterTitle }: Hadi
                                                     />
                                                 </div>
 
-                                                {/* Aspect Ratio Selector */}
-                                                <div className="col-span-2 space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800 mt-2">
-                                                    <label className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-                                                        Image Format
-                                                    </label>
-                                                    <div className="grid grid-cols-4 gap-2">
-                                                        {[
-                                                            { id: 'auto', label: 'Auto', ratio: undefined, icon: 'A' },
-                                                            { id: 'square', label: 'Square', ratio: '1/1', icon: '1:1' },
-                                                            { id: 'portrait', label: 'Portrait', ratio: '4/5', icon: '4:5' },
-                                                            { id: 'story', label: 'Story', ratio: '9/16', icon: '9:16' }
-                                                        ].map((format) => (
-                                                            <button
-                                                                key={format.id}
-                                                                onClick={() => setSelectedRatio(format.ratio)}
-                                                                className={`
-                                                                    flex flex-col items-center justify-center p-2 rounded-lg border transition-all
-                                                                    ${selectedRatio === format.ratio
-                                                                        ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-500 text-primary-700 dark:text-primary-400 ring-1 ring-primary-500'
-                                                                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}
-                                                                `}
-                                                            >
-                                                                <span className="text-xs font-bold mb-0.5">{format.icon}</span>
-                                                                <span className="text-[10px] opacity-80">{format.label}</span>
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </div>
+
                                             </div>
                                         </div>
                                     </motion.div>
@@ -375,13 +347,11 @@ export function HadithShareModal({ isOpen, onClose, hadith, chapterTitle }: Hadi
                                     {/* The Frame to Capture */}
                                     <div
                                         ref={ref}
-                                        className="w-full max-w-[800px] p-4 relative overflow-hidden rounded-lg shadow-lg transition-colors duration-300 flex flex-col justify-center"
+                                        className="w-full max-w-[800px] p-4 relative overflow-hidden rounded-lg shadow-lg transition-colors duration-300"
                                         style={{
                                             background: selectedTheme.background,
                                             color: selectedTheme.textColor,
-                                            boxShadow: selectedTheme.boxShadow,
-                                            aspectRatio: selectedRatio,
-                                            minHeight: selectedRatio ? 'auto' : undefined
+                                            boxShadow: selectedTheme.boxShadow
                                         }}
                                     >
                                         <div
