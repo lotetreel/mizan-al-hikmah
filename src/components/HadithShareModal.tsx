@@ -133,60 +133,61 @@ export function HadithShareModal({ isOpen, onClose, hadith, chapterTitle }: Hadi
                         </div>
 
                         {/* Preview Area */}
-                        <div className="p-8 bg-slate-100 dark:bg-slate-950 overflow-auto flex-1 flex justify-center">
-                            {/* The Frame to Capture */}
-                            <div
-                                ref={ref}
-                                className="w-full max-w-[600px] bg-slate-900 text-white px-8 pt-12 pb-32 md:px-12 md:pt-12 md:pb-32 relative overflow-hidden rounded-lg shadow-lg"
-                                style={{
-                                    backgroundImage: 'radial-gradient(circle at top right, #1e293b, #0f172a)',
-                                }}
-                            >
-                                {/* Decorative Border */}
-                                <div className="absolute inset-4 border border-gold-500/30 rounded-sm pointer-events-none" />
-                                <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')] pointer-events-none" />
+                        <div className="flex-1 overflow-y-auto min-h-0 p-8 bg-slate-100 dark:bg-slate-950 w-full">
+                            <div className="flex justify-center min-h-full">
+                                {/* The Frame to Capture */}
+                                <div
+                                    ref={ref}
+                                    className="w-full max-w-[600px] bg-slate-900 text-white p-4 relative overflow-hidden rounded-lg shadow-lg"
+                                    style={{
+                                        backgroundImage: 'radial-gradient(circle at top right, #1e293b, #0f172a)',
+                                    }}
+                                >
+                                    <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')] pointer-events-none" />
 
-                                <div className="relative z-10 flex flex-col items-center text-center space-y-8 mb-8">
-                                    {/* Header Icon/Text */}
-                                    <div className="text-gold-400 font-serif tracking-widest text-sm uppercase">
-                                        Mizan al Hikmah
-                                    </div>
+                                    {/* Content with Border */}
+                                    <div className="relative z-10 border border-gold-500/30 rounded-sm px-6 py-8 md:px-10 md:py-10 flex flex-col items-center text-center">
+                                        {/* Header Icon/Text */}
+                                        <div className="text-gold-400 font-serif tracking-widest text-sm uppercase mb-8">
+                                            Mizan al Hikmah
+                                        </div>
 
-                                    {/* Content */}
-                                    <div className="space-y-6 w-full">
-                                        {chapterTitle && (
-                                            <div className="text-slate-400 text-sm font-serif uppercase tracking-wide">
-                                                {chapterTitle}
-                                            </div>
-                                        )}
+                                        {/* Content */}
+                                        <div className="space-y-6 w-full">
+                                            {chapterTitle && (
+                                                <div className="text-slate-400 text-sm font-serif uppercase tracking-wide">
+                                                    {chapterTitle}
+                                                </div>
+                                            )}
 
-                                        <p
-                                            className="leading-loose text-white"
-                                            dir="rtl"
-                                            style={{
-                                                fontFamily: arabicFontFamily === 'arabic' ? 'var(--font-arabic)' : `'${arabicFontFamily}', var(--font-arabic)`,
-                                                fontSize: `${arabicFontSize}px`
-                                            }}
-                                        >
-                                            {hadith.arabic}
-                                        </p>
+                                            <p
+                                                className="leading-loose text-white"
+                                                dir="rtl"
+                                                style={{
+                                                    fontFamily: arabicFontFamily === 'arabic' ? 'var(--font-arabic)' : `'${arabicFontFamily}', var(--font-arabic)`,
+                                                    fontSize: `${arabicFontSize}px`
+                                                }}
+                                            >
+                                                {hadith.arabic}
+                                            </p>
 
-                                        <div className="w-16 h-px bg-gold-500/50 mx-auto" />
+                                            <div className="w-16 h-px bg-gold-500/50 mx-auto" />
 
-                                        <p
-                                            className="font-serif leading-relaxed text-slate-200"
-                                            style={{
-                                                fontSize: `${englishFontSize}px`
-                                            }}
-                                        >
-                                            {hadith.english}
-                                        </p>
-                                    </div>
+                                            <p
+                                                className="font-serif leading-relaxed text-slate-200"
+                                                style={{
+                                                    fontSize: `${englishFontSize}px`
+                                                }}
+                                            >
+                                                {hadith.english}
+                                            </p>
+                                        </div>
 
-                                    {/* Footer */}
-                                    <div className="pt-8 w-full flex justify-between items-end text-xs text-slate-500 font-mono">
-                                        <span>Hadith #{hadith.hadith_num}</span>
-                                        <span>mizan-al-hikmah.web.app</span>
+                                        {/* Footer */}
+                                        <div className="pt-12 w-full flex justify-between items-end text-xs text-slate-500 font-mono mt-auto">
+                                            <span>Hadith #{hadith.hadith_num}</span>
+                                            <span>mizan-al-hikmah.web.app</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
