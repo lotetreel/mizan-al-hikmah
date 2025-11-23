@@ -139,19 +139,10 @@ export function HadithShareModal({ isOpen, onClose, hadith, chapterTitle }: Hadi
 
         const element = ref.current;
 
-        // Store original width
-        const originalWidth = element.style.width;
-
-        // Temporarily set to fixed width for image generation
-        // 800px matches the max-width of the preview
-        element.style.width = '800px';
-        element.style.minWidth = '800px';
-        element.style.maxWidth = '800px';
-
         try {
             const dataUrl = await toPng(element, {
                 cacheBust: true,
-                pixelRatio: 2,
+                pixelRatio: 3, // Increased quality since we are capturing at display size
                 backgroundColor: selectedTheme.background.includes('gradient') ? undefined : selectedTheme.background,
                 height: element.scrollHeight,
                 style: {
@@ -161,17 +152,8 @@ export function HadithShareModal({ isOpen, onClose, hadith, chapterTitle }: Hadi
                 }
             });
 
-            // Restore original width
-            element.style.width = originalWidth;
-            element.style.minWidth = '';
-            element.style.maxWidth = '';
-
             return dataUrl;
         } catch (error) {
-            // Restore original width even on error
-            element.style.width = originalWidth;
-            element.style.minWidth = '';
-            element.style.maxWidth = '';
             throw error;
         }
     };
