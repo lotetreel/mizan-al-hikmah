@@ -141,11 +141,13 @@ export function HadithShareModal({ isOpen, onClose, hadith, chapterTitle }: Hadi
             cacheBust: true,
             pixelRatio: 2,
             backgroundColor: selectedTheme.background.includes('gradient') ? undefined : selectedTheme.background,
+            width: 800,
             height: element.scrollHeight,
             style: {
                 height: 'auto',
                 maxHeight: 'none',
-                overflow: 'visible'
+                overflow: 'visible',
+                width: '800px'
             }
         });
     };
@@ -338,7 +340,7 @@ export function HadithShareModal({ isOpen, onClose, hadith, chapterTitle }: Hadi
                                     {/* The Frame to Capture */}
                                     <div
                                         ref={ref}
-                                        className="w-full max-w-[600px] p-4 relative overflow-hidden rounded-lg shadow-lg transition-colors duration-300"
+                                        className="w-full max-w-[800px] p-4 relative overflow-hidden rounded-lg shadow-lg transition-colors duration-300"
                                         style={{
                                             background: selectedTheme.background,
                                             color: selectedTheme.textColor,
