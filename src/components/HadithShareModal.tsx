@@ -133,18 +133,41 @@ export function HadithShareModal({ isOpen, onClose, hadith, chapterTitle }: Hadi
         setSelectedThemeId(THEMES[nextIndex].id);
     };
 
+    const calculateOptimalWidth = () => {
+        // Estimate character width based on font sizes
+        const arabicCharWidth = arabicFontSize * 0.6; // Arabic chars are ~60% of font size
+        const englishCharWidth = englishFontSize * 0.5; // English chars are ~50% of font size
+
+        // Calculate needed width for each text segment
+        const arabicWidth = hadith.arabic.length * arabicCharWidth;
+        const englishWidth = hadith.english.length * englishCharWidth;
+        const chapterWidth = chapterTitle ? chapterTitle.length * 12 : 0;
+
+        // Take the maximum width needed
+        const maxTextWidth = Math.max(arabicWidth, englishWidth, chapterWidth);
+
+        // Add padding (innerPadding + outer padding + buffer = ~200px total)
+        const estimatedWidth = maxTextWidth + 200;
+
+        // Clamp between 600px (min readable) and 1200px (max before awkward)
+        return Math.min(Math.max(estimatedWidth, 600), 1200);
+    };
+
     const generateImageBlob = async () => {
         if (ref.current === null) return null;
 
         const element = ref.current;
 
+        // Calculate optimal width based on content
+        const optimalWidth = calculateOptimalWidth();
+
         // Store original width
         const originalWidth = element.style.width;
 
-        // Temporarily set to 800px for image generation
-        element.style.width = '800px';
-        element.style.minWidth = '800px';
-        element.style.maxWidth = '800px';
+        // Temporarily set to optimal width for image generation
+        element.style.width = `${optimalWidth}px`;
+        element.style.minWidth = `${optimalWidth}px`;
+        element.style.maxWidth = `${optimalWidth}px`;
 
         try {
             const dataUrl = await toPng(element, {
