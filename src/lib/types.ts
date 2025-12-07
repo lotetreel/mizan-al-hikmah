@@ -27,3 +27,12 @@ export interface SearchResult {
     section: Section;
     hadith: Hadith;
 }
+
+export interface HeadingResult {
+    title: string;
+    arabicTitle: string;
+    type: 'chapter' | 'section';
+    volume: number;
+    chapterId: number;
+    sectionId?: number;
+}

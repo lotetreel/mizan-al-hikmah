@@ -55,7 +55,7 @@ export function ChapterPage() {
 
             <div className="space-y-12">
                 {chapter.sections.map((section) => (
-                    <div key={section.section_num} className="space-y-6">
+                    <div key={section.section_num} id={`section-${section.section_num}`} className="space-y-6 scroll-mt-24">
                         <div className="bg-slate-100 dark:bg-slate-900 p-4 rounded-lg border-l-4 border-primary-500">
                             <h2 className="text-lg font-serif font-semibold text-slate-800 dark:text-slate-200 mb-1">
                                 {section.section_title_en}
