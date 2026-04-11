@@ -326,6 +326,14 @@ export function QuestionCarousel() {
                             animate="center"
                             exit="exit"
                             transition={{ duration: 0.22, ease: 'easeInOut' }}
+                            drag="x"
+                            dragConstraints={{ left: 0, right: 0 }}
+                            dragElastic={0.15}
+                            onDragEnd={(_, { offset, velocity }) => {
+                                const swipe = Math.abs(offset.x) * Math.abs(velocity.x);
+                                if (swipe > 3000 || offset.x < -50) goMobile(1);
+                                else if (swipe > 3000 || offset.x > 50) goMobile(-1);
+                            }}
                         >
                             <QuestionCard question={questions[mobileIndex]} index={mobileIndex} />
                         </motion.div>
