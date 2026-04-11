@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HelpCircle, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
@@ -210,6 +210,15 @@ export function QuestionCarousel() {
     const [mobileIndex, setMobileIndex] = useState(0);
     const [mobileDir, setMobileDir] = useState(0);
 
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    const stopAutoPlay = useCallback(() => {
+        if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+        }
+    }, []);
+
     useEffect(() => {
         fetch('/data/questions_index.json')
             .then(r => r.json())
@@ -218,17 +227,31 @@ export function QuestionCarousel() {
             .finally(() => setLoading(false));
     }, []);
 
+    // Auto-advance both carousels every 5 s; stops permanently on user interaction
+    useEffect(() => {
+        if (questions.length === 0) return;
+        intervalRef.current = setInterval(() => {
+            setMobileDir(1);
+            setMobileIndex(i => (i + 1) % questions.length);
+            setPageDir(1);
+            setPage(p => (p + 1) % Math.ceil(questions.length / CARDS_PER_PAGE));
+        }, 5000);
+        return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+    }, [questions.length]);
+
     const totalPages = Math.ceil(questions.length / CARDS_PER_PAGE);
 
     const goPage = useCallback((delta: number) => {
+        stopAutoPlay();
         setPageDir(delta);
         setPage(p => (p + delta + totalPages) % totalPages);
-    }, [totalPages]);
+    }, [totalPages, stopAutoPlay]);
 
     const goMobile = useCallback((delta: number) => {
+        stopAutoPlay();
         setMobileDir(delta);
         setMobileIndex(i => (i + delta + questions.length) % questions.length);
-    }, [questions.length]);
+    }, [questions.length, stopAutoPlay]);
 
     const pageQuestions = questions.slice(page * CARDS_PER_PAGE, page * CARDS_PER_PAGE + CARDS_PER_PAGE);
     const activeTheme = CARD_THEMES[mobileIndex % CARD_THEMES.length];
@@ -331,8 +354,8 @@ export function QuestionCarousel() {
                             dragElastic={0.15}
                             onDragEnd={(_, { offset, velocity }) => {
                                 const swipe = Math.abs(offset.x) * Math.abs(velocity.x);
-                                if (swipe > 3000 || offset.x < -50) goMobile(1);
-                                else if (swipe > 3000 || offset.x > 50) goMobile(-1);
+                                if (swipe > 3000 || offset.x < -50) { stopAutoPlay(); goMobile(1); }
+                                else if (swipe > 3000 || offset.x > 50) { stopAutoPlay(); goMobile(-1); }
                             }}
                         >
                             <QuestionCard question={questions[mobileIndex]} index={mobileIndex} />
@@ -354,7 +377,7 @@ export function QuestionCarousel() {
                         {questions.map((_, i) => (
                             <button
                                 key={i}
-                                onClick={() => { setMobileDir(i > mobileIndex ? 1 : -1); setMobileIndex(i); }}
+                                onClick={() => { stopAutoPlay(); setMobileDir(i > mobileIndex ? 1 : -1); setMobileIndex(i); }}
                                 aria-label={`Go to question ${i + 1}`}
                                 className={`h-1 rounded-full transition-all duration-300 ${
                                     i === mobileIndex
