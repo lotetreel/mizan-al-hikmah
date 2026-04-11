@@ -391,8 +391,25 @@ function QuestionCard({ question, index }: { question: Question; index: number }
             <motion.div
                 whileHover={{ y: -4 }}
                 transition={{ duration: 0.18 }}
-                className={`group h-full ${theme.card} border rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all cursor-pointer flex flex-col gap-4 ring-1 ring-inset ring-white/60 dark:ring-white/5`}
+                className={`group relative overflow-hidden h-full ${theme.card} border rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all cursor-pointer flex flex-col gap-4 ring-1 ring-inset ring-white/60 dark:ring-white/5`}
             >
+                {/* Glass shimmer sweep */}
+                <motion.div
+                    aria-hidden
+                    className="pointer-events-none absolute inset-0 -skew-x-12"
+                    animate={{ x: ['-120%', '220%'] }}
+                    transition={{
+                        duration: 1.6,
+                        ease: 'easeInOut',
+                        repeat: Infinity,
+                        repeatDelay: 3.5,
+                        delay: (index % 4) * 1.1,
+                    }}
+                    style={{
+                        background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.18) 45%, rgba(255,255,255,0.32) 50%, rgba(255,255,255,0.18) 55%, transparent 100%)',
+                    }}
+                />
+
                 <span className={`self-start text-xs font-mono font-semibold px-2 py-0.5 rounded-full ${theme.badge}`}>
                     Q{index + 1}
                 </span>
