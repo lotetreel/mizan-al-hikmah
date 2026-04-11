@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HelpCircle, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 
+const CARDS_PER_PAGE = 3;
+const TOTAL_QUESTIONS = 10;
+
 interface QuestionEntry {
     v: number;
     c: number;
@@ -43,10 +46,10 @@ function titleToQuestion(raw: string, templateIndex: number): string {
     return TEMPLATES[templateIndex % TEMPLATES.length](topic);
 }
 
-function pickThree(entries: QuestionEntry[]): Question[] {
+function pickN(entries: QuestionEntry[], n: number): Question[] {
     const pool = [...entries];
     const picked: QuestionEntry[] = [];
-    for (let i = 0; i < 3 && pool.length > 0; i++) {
+    for (let i = 0; i < n && pool.length > 0; i++) {
         const j = Math.floor(Math.random() * pool.length);
         picked.push(pool.splice(j, 1)[0]);
     }
@@ -69,23 +72,36 @@ const slideVariants = {
 export function QuestionCarousel() {
     const [questions, setQuestions] = useState<Question[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeIndex, setActiveIndex] = useState(0);
-    const [direction, setDirection] = useState(0);
+
+    // Desktop: page index (each page shows CARDS_PER_PAGE cards)
+    const [page, setPage] = useState(0);
+    const [pageDir, setPageDir] = useState(0);
+
+    // Mobile: single card index
+    const [mobileIndex, setMobileIndex] = useState(0);
+    const [mobileDir, setMobileDir] = useState(0);
 
     useEffect(() => {
         fetch('/data/questions_index.json')
             .then(r => r.json())
-            .then((entries: QuestionEntry[]) => {
-                setQuestions(pickThree(entries));
-            })
+            .then((entries: QuestionEntry[]) => setQuestions(pickN(entries, TOTAL_QUESTIONS)))
             .catch(() => setQuestions([]))
             .finally(() => setLoading(false));
     }, []);
 
-    const go = useCallback((delta: number) => {
-        setDirection(delta);
-        setActiveIndex(i => (i + delta + questions.length) % questions.length);
+    const totalPages = Math.ceil(questions.length / CARDS_PER_PAGE);
+
+    const goPage = useCallback((delta: number) => {
+        setPageDir(delta);
+        setPage(p => (p + delta + totalPages) % totalPages);
+    }, [totalPages]);
+
+    const goMobile = useCallback((delta: number) => {
+        setMobileDir(delta);
+        setMobileIndex(i => (i + delta + questions.length) % questions.length);
     }, [questions.length]);
+
+    const pageQuestions = questions.slice(page * CARDS_PER_PAGE, page * CARDS_PER_PAGE + CARDS_PER_PAGE);
 
     if (loading) {
         return (
@@ -117,70 +133,102 @@ export function QuestionCarousel() {
                 </h2>
             </div>
 
-            {/* Desktop: 3-column grid */}
-            <div className="hidden sm:grid grid-cols-3 gap-4">
-                {questions.map((q, i) => (
-                    <QuestionCard key={i} question={q} index={i} />
-                ))}
+            {/* Desktop: 3-card paged carousel */}
+            <div className="hidden sm:block">
+                <div className="relative overflow-hidden">
+                    <AnimatePresence custom={pageDir} mode="wait">
+                        <motion.div
+                            key={page}
+                            custom={pageDir}
+                            variants={slideVariants}
+                            initial="enter"
+                            animate="center"
+                            exit="exit"
+                            transition={{ duration: 0.22, ease: 'easeInOut' }}
+                            className="grid grid-cols-3 gap-4"
+                        >
+                            {pageQuestions.map((q, i) => (
+                                <QuestionCard
+                                    key={page * CARDS_PER_PAGE + i}
+                                    question={q}
+                                    index={page * CARDS_PER_PAGE + i}
+                                />
+                            ))}
+                        </motion.div>
+                    </AnimatePresence>
+                </div>
+
+                {/* Desktop pagination controls */}
+                <div className="flex items-center justify-between mt-4">
+                    <span className="text-xs text-slate-400 dark:text-slate-600">
+                        Questions change on each visit
+                    </span>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => goPage(-1)}
+                            className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-primary-50 dark:hover:bg-primary-900/20 text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                            aria-label="Previous questions"
+                        >
+                            <ChevronLeft size={16} />
+                        </button>
+                        <span className="text-xs font-mono text-slate-400 dark:text-slate-500 tabular-nums">
+                            {page + 1} / {totalPages}
+                        </span>
+                        <button
+                            onClick={() => goPage(1)}
+                            className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-primary-50 dark:hover:bg-primary-900/20 text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                            aria-label="Next questions"
+                        >
+                            <ChevronRight size={16} />
+                        </button>
+                    </div>
+                </div>
             </div>
 
             {/* Mobile: single-card carousel */}
             <div className="sm:hidden">
                 <div className="relative overflow-hidden rounded-2xl">
-                    <AnimatePresence custom={direction} mode="wait">
+                    <AnimatePresence custom={mobileDir} mode="wait">
                         <motion.div
-                            key={activeIndex}
-                            custom={direction}
+                            key={mobileIndex}
+                            custom={mobileDir}
                             variants={slideVariants}
                             initial="enter"
                             animate="center"
                             exit="exit"
                             transition={{ duration: 0.22, ease: 'easeInOut' }}
                         >
-                            <QuestionCard question={questions[activeIndex]} index={activeIndex} />
+                            <QuestionCard question={questions[mobileIndex]} index={mobileIndex} />
                         </motion.div>
                     </AnimatePresence>
                 </div>
 
-                {/* Controls */}
                 <div className="flex items-center justify-center gap-4 mt-4">
                     <button
-                        onClick={() => go(-1)}
+                        onClick={() => goMobile(-1)}
                         className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-primary-50 dark:hover:bg-primary-900/20 text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
                         aria-label="Previous question"
                     >
                         <ChevronLeft size={18} />
                     </button>
 
-                    {/* Dots */}
-                    <div className="flex gap-2">
-                        {questions.map((_, i) => (
-                            <button
-                                key={i}
-                                onClick={() => { setDirection(i > activeIndex ? 1 : -1); setActiveIndex(i); }}
-                                className={`w-2 h-2 rounded-full transition-all duration-200 ${
-                                    i === activeIndex
-                                        ? 'bg-primary-500 w-5'
-                                        : 'bg-slate-300 dark:bg-slate-600'
-                                }`}
-                                aria-label={`Go to question ${i + 1}`}
-                            />
-                        ))}
-                    </div>
+                    <span className="text-sm font-mono text-slate-400 dark:text-slate-500 tabular-nums w-12 text-center">
+                        {mobileIndex + 1} / {questions.length}
+                    </span>
 
                     <button
-                        onClick={() => go(1)}
+                        onClick={() => goMobile(1)}
                         className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-primary-50 dark:hover:bg-primary-900/20 text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
                         aria-label="Next question"
                     >
                         <ChevronRight size={18} />
                     </button>
                 </div>
-            </div>
 
-            <p className="text-xs text-slate-400 dark:text-slate-600 text-center sm:text-left">
-                Questions change on each visit
-            </p>
+                <p className="text-xs text-slate-400 dark:text-slate-600 text-center mt-2">
+                    Questions change on each visit
+</p>
+            </div>
         </motion.div>
     );
 }
@@ -195,17 +243,14 @@ function QuestionCard({ question, index }: { question: Question; index: number }
                 transition={{ duration: 0.18 }}
                 className="group h-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 shadow-sm hover:shadow-lg hover:border-primary-200 dark:hover:border-primary-800 transition-all cursor-pointer flex flex-col gap-4"
             >
-                {/* Question number badge */}
                 <span className="self-start text-xs font-mono font-semibold px-2 py-0.5 rounded-full bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400">
                     Q{index + 1}
                 </span>
 
-                {/* Question text */}
                 <p className="font-serif text-base font-semibold text-slate-800 dark:text-slate-200 leading-snug flex-1">
                     {question.text}
                 </p>
 
-                {/* Footer: source + arrow */}
                 <div className="flex items-end justify-between gap-2">
                     <div className="space-y-0.5">
                         <span className="block text-xs font-medium text-primary-600 dark:text-primary-400">
