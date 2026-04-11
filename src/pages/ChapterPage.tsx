@@ -116,7 +116,7 @@ export function ChapterPage() {
                                 }`}
                             >
                                 <span className={`font-mono text-[10px] font-bold tabular-nums ${activeSectionNum === s.section_num ? 'opacity-70' : 'opacity-40'}`}>{i + 1}</span>
-                                <span className="max-w-[140px] truncate">{s.section_title_en}</span>
+                                <span>{s.section_title_en}</span>
                             </button>
                         ))}
                     </div>
