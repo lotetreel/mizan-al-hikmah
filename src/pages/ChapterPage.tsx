@@ -3,13 +3,14 @@ import { useParams, Link } from 'react-router-dom';
 import { loadVolume } from '../lib/data';
 import type { Chapter } from '../lib/types';
 import { HadithFeed } from '../components/HadithFeed';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, LayoutList, LayoutGrid } from 'lucide-react';
 
 export function ChapterPage() {
     const { volumeNum, chapterNum } = useParams();
     const [chapter, setChapter] = useState<Chapter | null>(null);
     const [loading, setLoading] = useState(true);
     const [activeSectionNum, setActiveSectionNum] = useState<number | null>(null);
+    const [listView, setListView] = useState(false);
     const navStripRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -95,30 +96,77 @@ export function ChapterPage() {
                     </div>
                 </div>
 
-                {/* Section pill strip */}
+                {/* Section navigation */}
                 {hasMultipleSections && (
-                    <div
-                        ref={navStripRef}
-                        className="no-scrollbar flex gap-2 overflow-x-auto px-4 py-3 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur border-b border-slate-200 dark:border-slate-800"
-                    >
-                        {chapter.sections.map((s, i) => (
+                    <div className="bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur border-b border-slate-200 dark:border-slate-800">
+                        {/* Strip row + toggle button */}
+                        <div className="flex items-center">
+                            {/* Horizontal pill strip */}
+                            {!listView && (
+                                <div
+                                    ref={navStripRef}
+                                    className="no-scrollbar flex-1 flex gap-2 overflow-x-auto px-4 py-3"
+                                >
+                                    {chapter.sections.map((s, i) => (
+                                        <button
+                                            key={s.section_num}
+                                            data-section={s.section_num}
+                                            onClick={() =>
+                                                document.getElementById(`section-${s.section_num}`)
+                                                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                                            }
+                                            className={`shrink-0 flex items-start gap-2 px-4 py-2.5 rounded-2xl text-xs font-semibold transition-all w-32 ring-1 ring-inset ${
+                                                activeSectionNum === s.section_num
+                                                    ? 'bg-gradient-to-b from-primary-400 to-primary-600 text-white ring-primary-300/40 shadow-md shadow-primary-900/30'
+                                                    : 'bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-800 text-slate-600 dark:text-slate-300 ring-slate-200 dark:ring-slate-600/60 hover:from-primary-50 hover:to-primary-100 dark:hover:from-primary-900/40 dark:hover:to-primary-800/40 hover:text-primary-700 dark:hover:text-primary-300 hover:ring-primary-200 dark:hover:ring-primary-700/60'
+                                            }`}
+                                        >
+                                            <span className={`font-mono text-[10px] font-bold tabular-nums ${activeSectionNum === s.section_num ? 'opacity-70' : 'opacity-40'}`}>{i + 1}</span>
+                                            <span className="leading-snug">{s.section_title_en}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Spacer when in list view so toggle stays right */}
+                            {listView && <div className="flex-1" />}
+
+                            {/* View toggle button */}
                             <button
-                                key={s.section_num}
-                                data-section={s.section_num}
-                                onClick={() =>
-                                    document.getElementById(`section-${s.section_num}`)
-                                        ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                                }
-                                className={`shrink-0 flex items-start gap-2 px-4 py-2.5 rounded-2xl text-xs font-semibold transition-all w-32 ring-1 ring-inset ${
-                                    activeSectionNum === s.section_num
-                                        ? 'bg-gradient-to-b from-primary-400 to-primary-600 text-white ring-primary-300/40 shadow-md shadow-primary-900/30'
-                                        : 'bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-800 text-slate-600 dark:text-slate-300 ring-slate-200 dark:ring-slate-600/60 hover:from-primary-50 hover:to-primary-100 dark:hover:from-primary-900/40 dark:hover:to-primary-800/40 hover:text-primary-700 dark:hover:text-primary-300 hover:ring-primary-200 dark:hover:ring-primary-700/60'
-                                }`}
+                                onClick={() => setListView(v => !v)}
+                                aria-label={listView ? 'Switch to strip view' : 'Switch to list view'}
+                                className="shrink-0 mx-3 my-2 p-2 rounded-xl transition-all bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-800 text-slate-500 dark:text-slate-400 ring-1 ring-inset ring-slate-200 dark:ring-slate-600/60 hover:text-primary-600 dark:hover:text-primary-400 hover:ring-primary-200 dark:hover:ring-primary-700/60"
                             >
-                                <span className={`font-mono text-[10px] font-bold tabular-nums ${activeSectionNum === s.section_num ? 'opacity-70' : 'opacity-40'}`}>{i + 1}</span>
-                                <span className="leading-snug">{s.section_title_en}</span>
+                                {listView
+                                    ? <LayoutGrid size={15} />
+                                    : <LayoutList size={15} />
+                                }
                             </button>
-                        ))}
+                        </div>
+
+                        {/* Vertical list view */}
+                        {listView && (
+                            <div className="px-4 pb-3 space-y-1.5">
+                                {chapter.sections.map((s, i) => (
+                                    <button
+                                        key={s.section_num}
+                                        data-section={s.section_num}
+                                        onClick={() =>
+                                            document.getElementById(`section-${s.section_num}`)
+                                                ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                                        }
+                                        className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm text-left transition-all ring-1 ring-inset ${
+                                            activeSectionNum === s.section_num
+                                                ? 'bg-gradient-to-r from-primary-400 to-primary-600 text-white ring-primary-300/40 shadow-md shadow-primary-900/30 font-semibold'
+                                                : 'bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-800 text-slate-600 dark:text-slate-300 ring-slate-200 dark:ring-slate-600/60 hover:from-primary-50 hover:to-primary-100 dark:hover:from-primary-900/40 dark:hover:to-primary-800/40 hover:text-primary-700 dark:hover:text-primary-300 hover:ring-primary-200 dark:hover:ring-primary-700/60 font-medium'
+                                        }`}
+                                    >
+                                        <span className={`font-mono text-xs tabular-nums shrink-0 w-5 text-right ${activeSectionNum === s.section_num ? 'opacity-70' : 'opacity-40'}`}>{i + 1}</span>
+                                        <span>{s.section_title_en}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
