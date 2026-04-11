@@ -1,4 +1,5 @@
 import { VolumeSelector } from '../components/VolumeSelector';
+import { QuestionCarousel } from '../components/QuestionCarousel';
 import { motion } from 'framer-motion';
 
 export function Home() {
@@ -21,6 +22,8 @@ export function Home() {
                     The Scale of Wisdom. A comprehensive collection of Shi'a hadith.
                 </motion.p>
             </div>
+
+            <QuestionCarousel />
 
             <VolumeSelector />
         </div>
