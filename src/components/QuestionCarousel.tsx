@@ -212,9 +212,21 @@ export function QuestionCarousel() {
                         <ChevronLeft size={18} />
                     </button>
 
-                    <span className="text-sm font-mono text-slate-400 dark:text-slate-500 tabular-nums w-12 text-center">
-                        {mobileIndex + 1} / {questions.length}
-                    </span>
+                    {/* Segmented bar */}
+                    <div className="flex gap-1">
+                        {questions.map((_, i) => (
+                            <button
+                                key={i}
+                                onClick={() => { setMobileDir(i > mobileIndex ? 1 : -1); setMobileIndex(i); }}
+                                aria-label={`Go to question ${i + 1}`}
+                                className={`h-1 rounded-full transition-all duration-300 ${
+                                    i === mobileIndex
+                                        ? 'bg-primary-500 w-6'
+                                        : 'bg-slate-200 dark:bg-slate-700 w-4'
+                                }`}
+                            />
+                        ))}
+                    </div>
 
                     <button
                         onClick={() => goMobile(1)}
