@@ -4,11 +4,14 @@ import { loadVolume } from '../lib/data';
 import type { VolumeData } from '../lib/types';
 import { ChapterList } from '../components/ChapterList';
 import { ArrowLeft, Loader2 } from 'lucide-react';
+import { useScrollRestoration } from '../hooks/useScrollRestoration';
 
 export function VolumePage() {
     const { volumeNum } = useParams();
     const [data, setData] = useState<VolumeData | null>(null);
     const [loading, setLoading] = useState(true);
+
+    useScrollRestoration(!loading);
 
     useEffect(() => {
         if (volumeNum) {

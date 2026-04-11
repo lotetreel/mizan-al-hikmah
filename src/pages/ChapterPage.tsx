@@ -4,6 +4,7 @@ import { loadVolume } from '../lib/data';
 import type { Chapter } from '../lib/types';
 import { HadithFeed } from '../components/HadithFeed';
 import { ArrowLeft, Loader2 } from 'lucide-react';
+import { useScrollRestoration } from '../hooks/useScrollRestoration';
 
 export function ChapterPage() {
     const { volumeNum, chapterNum } = useParams();
@@ -11,6 +12,8 @@ export function ChapterPage() {
     const [loading, setLoading] = useState(true);
     const [activeSectionNum, setActiveSectionNum] = useState<number | null>(null);
     const navStripRef = useRef<HTMLDivElement>(null);
+
+    useScrollRestoration(!loading);
 
     useEffect(() => {
         if (volumeNum && chapterNum) {
