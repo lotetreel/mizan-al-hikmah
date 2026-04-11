@@ -99,7 +99,7 @@ export function ChapterPage() {
                 {hasMultipleSections && (
                     <div
                         ref={navStripRef}
-                        className="no-scrollbar flex gap-2 overflow-x-auto px-4 py-2 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur border-b border-slate-200 dark:border-slate-800"
+                        className="no-scrollbar flex gap-2 overflow-x-auto px-4 py-3 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur border-b border-slate-200 dark:border-slate-800"
                     >
                         {chapter.sections.map((s, i) => (
                             <button
@@ -109,13 +109,13 @@ export function ChapterPage() {
                                     document.getElementById(`section-${s.section_num}`)
                                         ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
                                 }
-                                className={`shrink-0 flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
+                                className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-semibold transition-all whitespace-nowrap ring-1 ring-inset ${
                                     activeSectionNum === s.section_num
-                                        ? 'bg-primary-500 text-white shadow-sm'
-                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400'
+                                        ? 'bg-gradient-to-b from-primary-400 to-primary-600 text-white ring-primary-300/40 shadow-md shadow-primary-900/30'
+                                        : 'bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-800 text-slate-600 dark:text-slate-300 ring-slate-200 dark:ring-slate-600/60 hover:from-primary-50 hover:to-primary-100 dark:hover:from-primary-900/40 dark:hover:to-primary-800/40 hover:text-primary-700 dark:hover:text-primary-300 hover:ring-primary-200 dark:hover:ring-primary-700/60'
                                 }`}
                             >
-                                <span className="font-mono text-[10px] opacity-60">{i + 1}</span>
+                                <span className={`font-mono text-[10px] font-bold tabular-nums ${activeSectionNum === s.section_num ? 'opacity-70' : 'opacity-40'}`}>{i + 1}</span>
                                 <span className="max-w-[140px] truncate">{s.section_title_en}</span>
                             </button>
                         ))}
