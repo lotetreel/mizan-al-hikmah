@@ -40,9 +40,36 @@ function toTitleCase(str: string): string {
     return str;
 }
 
+const PROPER_NOUN_MAP: Record<string, string> = {
+    'allah': 'Allah',
+    'quran': 'Quran',
+    "qur'an": "Qur'an",
+    'prophet': 'Prophet',
+    'god': 'God',
+    'islam': 'Islam',
+    'islamic': 'Islamic',
+    'muslim': 'Muslim',
+    'muslims': 'Muslims',
+    'imam': 'Imam',
+    'imamate': 'Imamate',
+    'muhammad': 'Muhammad',
+    'ali': 'Ali',
+    'fatima': 'Fatima',
+    'husayn': 'Husayn',
+    'hasan': 'Hasan',
+    'mahdi': 'Mahdi',
+    'jesus': 'Jesus',
+    'moses': 'Moses',
+    'abraham': 'Abraham',
+};
+
+function capitalizeProperNouns(str: string): string {
+    return str.replace(/\b[\w']+\b/g, word => PROPER_NOUN_MAP[word.toLowerCase()] ?? word);
+}
+
 function titleToQuestion(raw: string, templateIndex: number): string {
     const title = toTitleCase(raw);
-    const topic = title.replace(/^The\s+/i, '').toLowerCase();
+    const topic = capitalizeProperNouns(title.replace(/^The\s+/i, '').toLowerCase());
     return TEMPLATES[templateIndex % TEMPLATES.length](topic);
 }
 
