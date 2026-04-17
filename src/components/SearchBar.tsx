@@ -1,33 +1,30 @@
 import { Search } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 export function SearchBar() {
     const [searchParams] = useSearchParams();
     const [query, setQuery] = useState(searchParams.get('q') || '');
     const navigate = useNavigate();
+    // Auto-navigation should only fire when the user types — not when we sync
+    // from the URL (back button, route change clearing ?q, etc). Otherwise the
+    // stale query re-navigates the user back to /search after every click.
+    const isUserInputRef = useRef(false);
 
-    // Sync local state with URL param if it changes externally (e.g. back button)
+    // Sync local state with URL param when it changes externally.
     useEffect(() => {
-        const urlQuery = searchParams.get('q');
-        if (urlQuery !== null && urlQuery !== query) {
+        const urlQuery = searchParams.get('q') ?? '';
+        if (urlQuery !== query) {
+            isUserInputRef.current = false;
             setQuery(urlQuery);
         }
     }, [searchParams]);
 
     useEffect(() => {
+        if (!isUserInputRef.current) return;
         const timer = setTimeout(() => {
             if (query.trim()) {
-                // Navigate to search page with replace: true to avoid history stack pollution
-                // Only navigate if we are not already on the search page with this query?
-                // Actually, duplicate navigation is handled by router usually, but let's be safe.
-                // But specifically we want to trigger 'replace' if we are just typing.
-
-                // We simplify: just navigate.
                 navigate(`/search?q=${encodeURIComponent(query)}`, { replace: true });
-            } else if (query === '') {
-                // If query is cleared, maybe go back or stay?
-                // For now, let's do nothing or maybe allow clearing search if on search page.
             }
         }, 300);
 
@@ -36,7 +33,6 @@ export function SearchBar() {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        // Force navigation even if debounce hasn't fired
         if (query.trim()) {
             navigate(`/search?q=${encodeURIComponent(query)}`);
         }
@@ -48,7 +44,10 @@ export function SearchBar() {
                 <input
                     type="text"
                     value={query}
-                    onChange={(e) => setQuery(e.target.value)}
+                    onChange={(e) => {
+                        isUserInputRef.current = true;
+                        setQuery(e.target.value);
+                    }}
                     placeholder="Search hadiths..."
                     className="w-full py-2 pl-10 pr-4 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-500 text-slate-800 dark:text-slate-100 placeholder-slate-400 transition-all shadow-sm"
                 />
