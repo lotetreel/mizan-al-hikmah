@@ -4,6 +4,7 @@ import { Home } from './pages/Home';
 import { VolumePage } from './pages/VolumePage';
 import { ChapterPage } from './pages/ChapterPage';
 import { SearchPage } from './pages/SearchPage';
+import { Favorites } from './pages/Favorites';
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
         <Route path="volume/:volumeNum" element={<VolumePage />} />
         <Route path="volume/:volumeNum/chapter/:chapterNum" element={<ChapterPage />} />
         <Route path="search" element={<SearchPage />} />
+        <Route path="favorites" element={<Favorites />} />
       </Route>
     </Routes>
   );

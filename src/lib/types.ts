@@ -36,3 +36,15 @@ export interface HeadingResult {
     chapterId: number;
     sectionId?: number;
 }
+
+export interface FavoriteHadith {
+    volume: number;
+    chapterNum: number;
+    chapterTitleEn: string;
+    chapterTitleAr: string;
+    sectionNum: number;
+    sectionTitleEn: string;
+    sectionTitleAr: string;
+    hadith: Hadith;
+    favoritedAt: number;
+}
