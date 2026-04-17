@@ -1,6 +1,7 @@
 import type { Hadith } from '../lib/types';
-import { Copy, Check, Image as ImageIcon, Heart } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { Copy, Check, Image as ImageIcon, Heart, Link2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 import { HadithShareModal } from './HadithShareModal';
@@ -44,20 +45,47 @@ export function HadithCard({
     showChapterInfo,
 }: HadithCardProps) {
     const [copied, setCopied] = useState(false);
+    const [linkCopied, setLinkCopied] = useState(false);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
     const [celebrate, setCelebrate] = useState(false);
+    const [highlighted, setHighlighted] = useState(false);
     const lastTapRef = useRef(0);
     const celebrateTimerRef = useRef<number | null>(null);
     const { settings } = useFontSettings();
     const { isFavorite, toggleFavorite } = useFavorites();
+    const location = useLocation();
 
     const favorited = isFavorite(volume, hadith.hadith_num);
+    const anchorId = `h-${hadith.hadith_num}`;
+    const permalinkPath = `/volume/${volume}/chapter/${chapterNum}#${anchorId}`;
+
+    useEffect(() => {
+        if (location.hash !== `#${anchorId}`) return;
+        const raf = requestAnimationFrame(() => {
+            document
+                .getElementById(anchorId)
+                ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setHighlighted(true);
+        });
+        const t = window.setTimeout(() => setHighlighted(false), 2200);
+        return () => {
+            cancelAnimationFrame(raf);
+            window.clearTimeout(t);
+        };
+    }, [location.hash, anchorId]);
 
     const copyToClipboard = () => {
         const text = `${hadith.arabic}\n\n${hadith.english}\n\n(Mizan al Hikmah, Hadith #${hadith.hadith_num})`;
         navigator.clipboard.writeText(text);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
+    };
+
+    const copyPermalink = () => {
+        const url = `${window.location.origin}${permalinkPath}`;
+        navigator.clipboard.writeText(url);
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 2000);
     };
 
     const triggerCelebration = () => {
@@ -98,12 +126,15 @@ export function HadithCard({
     return (
         <>
             <motion.div
+                id={anchorId}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 onClick={handleCardClick}
                 className={cn(
-                    "relative bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border transition-all select-none",
+                    "relative bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border transition-all select-none scroll-mt-44",
+                    highlighted &&
+                        "ring-4 ring-primary-400/70 ring-offset-2 ring-offset-slate-50 dark:ring-offset-slate-950",
                     favorited
                         ? "border-rose-300 dark:border-rose-500/40 shadow-rose-100/40 dark:shadow-rose-900/10"
                         : "border-slate-200 dark:border-slate-800 hover:shadow-md"
@@ -212,6 +243,19 @@ export function HadithCard({
                                     </span>
                                 )}
                             </AnimatePresence>
+                        </button>
+                        <button
+                            onClick={copyPermalink}
+                            className={cn(
+                                "p-2 rounded-full transition-colors",
+                                linkCopied
+                                    ? "text-green-500 bg-green-50 dark:bg-green-900/20"
+                                    : "text-slate-400 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20"
+                            )}
+                            title={linkCopied ? 'Link copied' : 'Copy link to this hadith'}
+                            aria-label="Copy link to this hadith"
+                        >
+                            {linkCopied ? <Check size={18} /> : <Link2 size={18} />}
                         </button>
                         <button
                             onClick={() => setIsShareModalOpen(true)}
