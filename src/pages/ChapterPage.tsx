@@ -138,7 +138,16 @@ export function ChapterPage() {
                             </p>
                         </div>
 
-                        <HadithFeed hadiths={section.hadiths} />
+                        <HadithFeed
+                            hadiths={section.hadiths}
+                            volume={parseInt(volumeNum!)}
+                            chapterNum={chapter.chapter_num}
+                            chapterTitleEn={chapter.chapter_title_en}
+                            chapterTitleAr={chapter.chapter_title_ar}
+                            sectionNum={section.section_num}
+                            sectionTitleEn={section.section_title_en}
+                            sectionTitleAr={section.section_title_ar}
+                        />
                     </div>
                 ))}
             </div>

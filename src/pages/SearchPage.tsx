@@ -87,9 +87,14 @@ export function SearchPage() {
                                     <HadithCard
                                         key={`${result.volume}-${result.chapter.chapter_num}-${result.hadith.hadith_num}-${index}`}
                                         hadith={result.hadith}
+                                        volume={result.volume}
+                                        chapterNum={result.chapter.chapter_num}
+                                        chapterTitleEn={result.chapter.chapter_title_en}
+                                        chapterTitleAr={result.chapter.chapter_title_ar}
+                                        sectionNum={result.section.section_num}
+                                        sectionTitleEn={result.section.section_title_en}
+                                        sectionTitleAr={result.section.section_title_ar}
                                         showChapterInfo
-                                        chapterTitle={result.chapter.chapter_title_en}
-                                        sectionTitle={result.section.section_title_en}
                                     />
                                 ))}
                             </div>
