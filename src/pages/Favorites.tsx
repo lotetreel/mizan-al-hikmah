@@ -53,7 +53,7 @@ export function Favorites() {
                     {favorites.map((fav) => (
                         <div key={`${fav.volume}-${fav.hadith.hadith_num}`} className="space-y-2">
                             <Link
-                                to={`/volume/${fav.volume}/chapter/${fav.chapterNum}#section-${fav.sectionNum}`}
+                                to={`/volume/${fav.volume}/chapter/${fav.chapterNum}#h-${fav.hadith.hadith_num}`}
                                 className="inline-flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
                             >
                                 <span className="font-mono">Vol {fav.volume}</span>
