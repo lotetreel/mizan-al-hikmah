@@ -304,6 +304,8 @@ export function HadithCard({
                 isOpen={isShareModalOpen}
                 onClose={() => setIsShareModalOpen(false)}
                 hadith={hadith}
+                volume={volume}
+                chapterNum={chapterNum}
                 chapterTitle={chapterTitleEn}
             />
         </>

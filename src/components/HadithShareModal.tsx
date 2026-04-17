@@ -8,6 +8,8 @@ interface HadithShareModalProps {
     isOpen: boolean;
     onClose: () => void;
     hadith: Hadith;
+    volume: number;
+    chapterNum: number;
     chapterTitle?: string;
 }
 
@@ -115,7 +117,7 @@ const THEMES: Theme[] = [
     }
 ];
 
-export function HadithShareModal({ isOpen, onClose, hadith, chapterTitle }: HadithShareModalProps) {
+export function HadithShareModal({ isOpen, onClose, hadith, volume, chapterNum, chapterTitle }: HadithShareModalProps) {
     const ref = useRef<HTMLDivElement>(null);
     const [isGenerating, setIsGenerating] = useState(false);
     const [isSharing, setIsSharing] = useState(false);
@@ -182,11 +184,12 @@ export function HadithShareModal({ isOpen, onClose, hadith, chapterTitle }: Hadi
 
             const blob = await (await fetch(dataUrl)).blob();
             const file = new File([blob], `mizan-hadith-${hadith.hadith_num}.png`, { type: 'image/png' });
+            const permalink = `${window.location.origin}/volume/${volume}/chapter/${chapterNum}#h-${hadith.hadith_num}`;
 
             if (navigator.share) {
                 await navigator.share({
-                    title: 'Mizan al Hikmah Hadith',
-                    text: 'Check out this hadith from Mizan al Hikmah',
+                    title: `Hadith #${hadith.hadith_num} — Mizan al Hikmah`,
+                    url: permalink,
                     files: [file]
                 });
             } else {
