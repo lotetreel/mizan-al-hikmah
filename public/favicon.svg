@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+    <defs>
+        <radialGradient id="bgGrad" cx="200" cy="200" r="280" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#197346" />
+            <stop offset="50%" stop-color="#0E4829" />
+            <stop offset="100%" stop-color="#062111" />
+        </radialGradient>
+        <linearGradient id="gold" x1="20%" y1="0%" x2="80%" y2="100%">
+            <stop offset="0%" stop-color="#FCE18D" />
+            <stop offset="25%" stop-color="#DCAE4F" />
+            <stop offset="75%" stop-color="#EBCF74" />
+            <stop offset="100%" stop-color="#C29032" />
+        </linearGradient>
+        <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.5" />
+        </filter>
+    </defs>
+
+    <rect width="400" height="400" rx="80" fill="url(#bgGrad)" />
+    <rect x="12" y="12" width="376" height="376" rx="68" fill="none" stroke="url(#gold)" stroke-width="5" filter="url(#shadow)" opacity="0.9" />
+
+    <g filter="url(#shadow)">
+        <g stroke="url(#gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none">
+            <path d="M 200 180 Q 150 160, 100 185 L 100 275 Q 150 295, 200 310" />
+            <path d="M 85 195 L 85 285 Q 150 305, 200 320" />
+            <path d="M 70 205 L 70 295 Q 150 315, 200 330" />
+            <path d="M 200 180 Q 250 160, 300 185 L 300 275 Q 250 295, 200 310" />
+            <path d="M 315 195 L 315 285 Q 250 305, 200 320" />
+            <path d="M 330 205 L 330 295 Q 250 315, 200 330" />
+            <line x1="200" y1="310" x2="200" y2="340" />
+        </g>
+
+        <path d="M 190 148
+                 C 160 155, 150 115, 175 105
+                 C 180 80, 220 80, 225 105
+                 C 250 115, 240 155, 210 148
+                 L 216 148 C 218 148, 218 152, 216 152 L 210 152
+                 L 210 158 L 216 158 C 218 158, 218 162, 216 162 L 210 162
+                 L 210 240 L 226 240 L 226 248 L 218 248 L 218 256 L 226 256 L 226 264 L 210 264
+                 L 210 285 A 10 10 0 0 1 190 285
+                 L 190 162 L 184 162 C 182 162, 182 158, 184 158 L 190 158
+                 L 190 152 L 184 152 C 182 152, 182 148, 184 148 Z"
+              fill="url(#bgGrad)" stroke="url(#gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+</svg>
