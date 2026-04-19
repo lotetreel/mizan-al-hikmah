@@ -45,12 +45,16 @@ export function HadithCard({
     showChapterInfo,
 }: HadithCardProps) {
     const [copied, setCopied] = useState(false);
+    const [copiedArabic, setCopiedArabic] = useState(false);
+    const [copiedEnglish, setCopiedEnglish] = useState(false);
+    const [showCopyMenu, setShowCopyMenu] = useState(false);
     const [linkCopied, setLinkCopied] = useState(false);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
     const [celebrate, setCelebrate] = useState(false);
     const [highlighted, setHighlighted] = useState(false);
     const lastTapRef = useRef(0);
     const celebrateTimerRef = useRef<number | null>(null);
+    const copyMenuRef = useRef<HTMLDivElement>(null);
     const { settings } = useFontSettings();
     const { isFavorite, toggleFavorite } = useFavorites();
     const location = useLocation();
@@ -74,10 +78,36 @@ export function HadithCard({
         };
     }, [location.hash, anchorId]);
 
+    useEffect(() => {
+        if (!showCopyMenu) return;
+        const handleClickOutside = (event: MouseEvent) => {
+            if (copyMenuRef.current && !copyMenuRef.current.contains(event.target as Node)) {
+                setShowCopyMenu(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showCopyMenu]);
+
+    const copyArabicOnly = () => {
+        navigator.clipboard.writeText(hadith.arabic);
+        setCopiedArabic(true);
+        setShowCopyMenu(false);
+        setTimeout(() => setCopiedArabic(false), 2000);
+    };
+
+    const copyEnglishOnly = () => {
+        navigator.clipboard.writeText(hadith.english);
+        setCopiedEnglish(true);
+        setShowCopyMenu(false);
+        setTimeout(() => setCopiedEnglish(false), 2000);
+    };
+
     const copyToClipboard = () => {
         const text = `${hadith.arabic}\n\n${hadith.english}\n\n(Mizan al Hikmah, Hadith #${hadith.hadith_num})`;
         navigator.clipboard.writeText(text);
         setCopied(true);
+        setShowCopyMenu(false);
         setTimeout(() => setCopied(false), 2000);
     };
 
@@ -264,18 +294,76 @@ export function HadithCard({
                         >
                             <ImageIcon size={18} />
                         </button>
-                        <button
-                            onClick={copyToClipboard}
-                            className={cn(
-                                "p-2 rounded-full transition-colors",
-                                copied
-                                    ? "text-green-500 bg-green-50 dark:bg-green-900/20"
-                                    : "text-slate-400 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20"
-                            )}
-                            title="Copy to clipboard"
-                        >
-                            {copied ? <Check size={18} /> : <Copy size={18} />}
-                        </button>
+                        <div ref={copyMenuRef} className="relative">
+                            <button
+                                onClick={() => setShowCopyMenu(prev => !prev)}
+                                className={cn(
+                                    "p-2 rounded-full transition-colors",
+                                    (copied || copiedArabic || copiedEnglish)
+                                        ? "text-green-500 bg-green-50 dark:bg-green-900/20"
+                                        : showCopyMenu
+                                            ? "text-primary-500 bg-primary-50 dark:bg-primary-900/20"
+                                            : "text-slate-400 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20"
+                                )}
+                                title="Copy to clipboard"
+                            >
+                                {(copied || copiedArabic || copiedEnglish) ? <Check size={18} /> : <Copy size={18} />}
+                            </button>
+
+                            <AnimatePresence>
+                                {showCopyMenu && (
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.92, y: 6 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.92, y: 6 }}
+                                        transition={{ duration: 0.15, ease: 'easeOut' }}
+                                        className="absolute bottom-full right-0 mb-3 z-50 min-w-[180px]"
+                                    >
+                                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200/80 dark:border-slate-700/80 overflow-hidden">
+                                            <div className="px-4 py-2.5 border-b border-slate-100 dark:border-slate-700/60">
+                                                <p className="text-[10px] font-semibold tracking-widest uppercase text-slate-400 dark:text-slate-500">Copy text</p>
+                                            </div>
+                                            <div className="p-1.5 space-y-0.5">
+                                                <button
+                                                    onClick={copyArabicOnly}
+                                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors group"
+                                                >
+                                                    <span className="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400 font-bold text-base shrink-0" style={{ fontFamily: 'var(--font-arabic)' }}>
+                                                        ع
+                                                    </span>
+                                                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                                                        Arabic only
+                                                    </span>
+                                                </button>
+                                                <button
+                                                    onClick={copyEnglishOnly}
+                                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors group"
+                                                >
+                                                    <span className="w-7 h-7 rounded-lg bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center text-sky-600 dark:text-sky-400 font-bold text-sm shrink-0">
+                                                        A
+                                                    </span>
+                                                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                                                        English only
+                                                    </span>
+                                                </button>
+                                                <button
+                                                    onClick={copyToClipboard}
+                                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors group"
+                                                >
+                                                    <span className="w-7 h-7 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center text-violet-600 dark:text-violet-400 shrink-0">
+                                                        <Copy size={13} />
+                                                    </span>
+                                                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                                                        Both
+                                                    </span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div className="absolute -bottom-[6px] right-[13px] w-3 h-3 bg-white dark:bg-slate-800 border-r border-b border-slate-200/80 dark:border-slate-700/80 rotate-45" />
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
                     </div>
                 </div>
 
