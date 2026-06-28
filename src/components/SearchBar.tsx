@@ -7,19 +7,21 @@ export function SearchBar() {
     const urlQuery = searchParams.get('q') || '';
     const [query, setQuery] = useState(urlQuery);
     const navigate = useNavigate();
-    // Auto-navigation should only fire when the user types — not when we sync
+    // Auto-navigation should only fire when the user types, not when we sync
     // from the URL (back button, route change clearing ?q, etc). Otherwise the
     // stale query re-navigates the user back to /search after every click.
     const isUserInputRef = useRef(false);
+    const previousUrlQueryRef = useRef(urlQuery);
 
     useEffect(() => {
-        if (urlQuery === query) return;
+        if (previousUrlQueryRef.current === urlQuery) return;
+        previousUrlQueryRef.current = urlQuery;
         const syncTimer = window.setTimeout(() => {
             isUserInputRef.current = false;
             setQuery(urlQuery);
         }, 0);
         return () => window.clearTimeout(syncTimer);
-    }, [query, urlQuery]);
+    }, [urlQuery]);
 
     useEffect(() => {
         if (!isUserInputRef.current) return;
