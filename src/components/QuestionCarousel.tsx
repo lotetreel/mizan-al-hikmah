@@ -4,6 +4,8 @@ import { motion } from 'framer-motion';
 import { ArrowRight, BookOpen, Compass, RefreshCw } from 'lucide-react';
 
 const TOTAL_QUESTIONS = 7;
+const RECENT_QUESTIONS_STORAGE_KEY = 'mizan:recent-explore-question-keys';
+const RECENT_QUESTIONS_LIMIT = 42;
 
 interface QuestionEntry {
     v: number;
@@ -78,9 +80,26 @@ const CURATED_PROMPTS: CuratedPrompt[] = [
 const QUESTION_TEMPLATES = [
     (topic: string) => `What guidance is gathered on ${topic}?`,
     (topic: string) => `How do the narrations frame ${topic}?`,
-    (topic: string) => `Where does guidance on ${topic} meet daily conduct?`,
+    (topic: string) => `What can be learned through ${topic}?`,
     (topic: string) => `What does Mizan al-Hikmah preserve on ${topic}?`,
 ];
+
+const ARTICLE_TOPICS = new Set([
+    'body',
+    'brother',
+    'heart',
+    'hereafter',
+    'imam',
+    'intellect',
+    'prisoner',
+    'prophet',
+    'quran',
+    "qur'an",
+    'self',
+    'soul',
+    'tongue',
+    'world',
+]);
 
 const PROPER_NOUN_MAP: Record<string, string> = {
     'allah': 'Allah',
@@ -100,9 +119,12 @@ const PROPER_NOUN_MAP: Record<string, string> = {
     'husayn': 'Husayn',
     'hasan': 'Hasan',
     'mahdi': 'Mahdi',
+    'hadi': 'Hadi',
     'jesus': 'Jesus',
     'moses': 'Moses',
     'khidr': 'Khidr',
+    'irmiya': 'Jeremiah',
+    'godwariness': 'Godwariness',
     'abraham': 'Abraham',
 };
 
@@ -128,11 +150,33 @@ function topicFromTitle(raw: string): string {
     return capitalizeProperNouns(
         toTitleCase(raw)
             .replace(/^The\s+/i, '')
+            .replace(/\(\s*\d+\s*\).*$/g, '')
+            .replace(/\s*\[[^\]]*\]\s*/g, ' ')
             .replace(/\s*\([^)]*\)\s*/g, ' ')
             .toLowerCase()
             .replace(/\s+/g, ' ')
             .trim()
     );
+}
+
+function topicForQuestion(raw: string): string {
+    const topic = topicFromTitle(raw);
+    const normalizedTopic = normalizeTitle(topic);
+
+    if (ARTICLE_TOPICS.has(normalizedTopic)) {
+        return `the ${topic}`;
+    }
+
+    return topic;
+}
+
+function cleanSubjectText(subject: string): string {
+    return subject
+        .replace(/^[.\s:;-]+/, '')
+        .replace(/\bcharasteristics\b/gi, 'characteristics')
+        .replace(/\bproperous\b/gi, 'prosperous')
+        .replace(/\s+/g, ' ')
+        .trim();
 }
 
 function subjectFromSection(raw: string): string {
@@ -143,41 +187,48 @@ function subjectFromSection(raw: string): string {
             .replace(/^Virtue\s+Of\s+/i, '')
             .replace(/^The\s+Merit\s+Of\s+/i, '')
             .replace(/^Merit\s+Of\s+/i, '')
-            .replace(/^Enjoinment\s+Of\s+/i, '')
-            .replace(/^Prohibition\s+Of\s+/i, '')
-            .replace(/^Condemnation\s+Of\s+/i, '')
+            .replace(/^(The\s+)?Enjoinment\s+Of\s+/i, '')
+            .replace(/^(The\s+)?Prohibition\s+Of\s+/i, '')
+            .replace(/^(The\s+)?Condemnation\s+Of\s+/i, '')
+            .replace(/^(The\s+)?Censure\s+Of\s+/i, '')
             .toLowerCase()
             .replace(/\s+/g, ' ')
             .trim()
     );
+    const cleanedSubject = cleanSubjectText(subject);
 
-    if (/^(importance|necessity|reality|meaning|signs|reward|punishment|benefit|etiquette)\b/i.test(subject)) {
-        return `the ${subject}`;
+    if (/^all-powerful$/i.test(cleanedSubject)) {
+        return 'the All-Powerful';
     }
 
-    return subject;
+    if (/^(importance|necessity|reality|meaning|signs|reward|punishment|benefit|etiquette)\b/i.test(cleanedSubject)) {
+        return `the ${cleanedSubject}`;
+    }
+
+    return cleanedSubject;
 }
 
 function questionFromEntry(entry: QuestionEntry, index: number): string {
     const sectionTitle = toTitleCase(entry.t);
-    const topic = subjectFromSection(sectionTitle);
+    const sectionSubject = subjectFromSection(sectionTitle);
 
     if (/^(The\s+)?Virtue\s+Of\s+/i.test(sectionTitle)) {
-        return `What gives weight to ${topic}?`;
+        return `What gives weight to ${sectionSubject}?`;
     }
 
-    if (/^Enjoinment\s+Of\s+/i.test(sectionTitle)) {
-        return `What calls a person toward ${topic}?`;
+    if (/^(The\s+)?Enjoinment\s+Of\s+/i.test(sectionTitle)) {
+        return `What calls a person toward ${sectionSubject}?`;
     }
 
-    if (/^Prohibition\s+Of\s+/i.test(sectionTitle)) {
-        return `What cautions are given around ${topic}?`;
+    if (/^(The\s+)?Prohibition\s+Of\s+/i.test(sectionTitle)) {
+        return `What cautions are given around ${sectionSubject}?`;
     }
 
-    if (/^Condemnation\s+Of\s+/i.test(sectionTitle)) {
-        return `What warning is given about ${topic}?`;
+    if (/^(The\s+)?(Condemnation|Censure)\s+Of\s+/i.test(sectionTitle)) {
+        return `What warning is given about ${sectionSubject}?`;
     }
 
+    const topic = topicForQuestion(entry.ct);
     return QUESTION_TEMPLATES[index % QUESTION_TEMPLATES.length](topic);
 }
 
@@ -186,9 +237,12 @@ function isQuestionFriendlyEntry(entry: QuestionEntry): boolean {
 
     if (subject.length === 0 || subject.length > 48) return false;
     if (/["'\u201c\u201d]|\.{2,}/.test(subject)) return false;
-    if (/\band\b/i.test(subject) && subject.length > 28) return false;
+    if (subject.includes('[') || subject.includes(']') || subject.includes(',')) return false;
+    if (/\band\b/i.test(subject) && subject.length > 20) return false;
 
     return !/^(that which|the fact|those who|one who|he who|whoever|what to|whether)\b/i.test(subject) &&
+        !/^(what|how|when|where|why)\b/i.test(subject) &&
+        !/^interpretation\s+of\b/i.test(subject) &&
         !/\b(is|are|was|were|will|shall|should|must|has|have|had)\b/i.test(subject) &&
         !/^(encouraging|discouraging|exhorting)\b/i.test(subject);
 }
@@ -205,6 +259,14 @@ function toQuestion(entry: QuestionEntry, index: number, prompt?: CuratedPrompt)
     };
 }
 
+function entryKey(entry: QuestionEntry): string {
+    return `${entry.v}-${entry.c}-${entry.s}`;
+}
+
+function questionKey(question: Question): string {
+    return `${question.volume}-${question.chapterNum}-${question.sectionNum}`;
+}
+
 function findCuratedEntry(entries: QuestionEntry[], prompt: CuratedPrompt): QuestionEntry | undefined {
     const chapterTitle = normalizeTitle(prompt.chapterTitle);
     const sectionTitle = normalizeTitle(prompt.sectionTitle);
@@ -215,38 +277,92 @@ function findCuratedEntry(entries: QuestionEntry[], prompt: CuratedPrompt): Ques
     );
 }
 
-function selectCuratedQuestions(entries: QuestionEntry[]): Question[] {
-    const selected = CURATED_PROMPTS
+function getCuratedQuestions(entries: QuestionEntry[]): Question[] {
+    return CURATED_PROMPTS
         .map((prompt, index) => {
             const entry = findCuratedEntry(entries, prompt);
             return entry ? toQuestion(entry, index, prompt) : null;
         })
         .filter((question): question is Question => question !== null);
-
-    if (selected.length >= TOTAL_QUESTIONS) return selected.slice(0, TOTAL_QUESTIONS);
-
-    const used = new Set(selected.map(question => `${question.volume}-${question.chapterNum}-${question.sectionNum}`));
-    const fill = entries
-        .filter(isQuestionFriendlyEntry)
-        .filter(entry => !used.has(`${entry.v}-${entry.c}-${entry.s}`))
-        .filter((_, index) => index % 173 === 0)
-        .slice(0, TOTAL_QUESTIONS - selected.length)
-        .map((entry, index) => toQuestion(entry, selected.length + index));
-
-    return [...selected, ...fill];
 }
 
-function shuffleQuestions(entries: QuestionEntry[]): Question[] {
-    const friendlyEntries = entries.filter(isQuestionFriendlyEntry);
-    const pool = [...(friendlyEntries.length >= TOTAL_QUESTIONS ? friendlyEntries : entries)];
-    const picked: QuestionEntry[] = [];
+function getRecentQuestionKeys(): string[] {
+    if (typeof window === 'undefined') return [];
 
-    while (picked.length < TOTAL_QUESTIONS && pool.length > 0) {
-        const index = Math.floor(Math.random() * pool.length);
-        picked.push(pool.splice(index, 1)[0]);
+    try {
+        const stored = window.sessionStorage.getItem(RECENT_QUESTIONS_STORAGE_KEY);
+        if (!stored) return [];
+
+        const keys = JSON.parse(stored);
+        return Array.isArray(keys) ? keys.filter((key): key is string => typeof key === 'string') : [];
+    } catch {
+        return [];
+    }
+}
+
+function rememberQuestionKeys(questions: Question[]): void {
+    if (typeof window === 'undefined') return;
+
+    try {
+        const recentKeys = getRecentQuestionKeys();
+        const nextKeys = [...questions.map(questionKey), ...recentKeys]
+            .filter((key, index, keys) => keys.indexOf(key) === index)
+            .slice(0, RECENT_QUESTIONS_LIMIT);
+
+        window.sessionStorage.setItem(RECENT_QUESTIONS_STORAGE_KEY, JSON.stringify(nextKeys));
+    } catch {
+        // Non-essential; randomization still works if session storage is unavailable.
+    }
+}
+
+function pickRandomQuestions(pool: Question[]): Question[] {
+    const candidates = [...pool];
+    const picked: Question[] = [];
+    const usedTopics = new Set<string>();
+
+    while (picked.length < TOTAL_QUESTIONS && candidates.length > 0) {
+        const index = Math.floor(Math.random() * candidates.length);
+        const question = candidates.splice(index, 1)[0];
+        const topicKey = normalizeTitle(question.topic);
+        const canStillFill = candidates.length >= TOTAL_QUESTIONS - picked.length;
+
+        if (usedTopics.has(topicKey) && canStillFill) continue;
+
+        picked.push(question);
+        usedTopics.add(topicKey);
     }
 
-    return picked.map((entry, index) => toQuestion(entry, index));
+    return picked;
+}
+
+function buildQuestionPool(entries: QuestionEntry[]): Question[] {
+    const curatedQuestions = getCuratedQuestions(entries);
+    const usedKeys = new Set(curatedQuestions.map(questionKey));
+    const friendlyQuestions = entries
+        .filter(isQuestionFriendlyEntry)
+        .filter(entry => !usedKeys.has(entryKey(entry)))
+        .map((entry, index) => toQuestion(entry, index));
+
+    const pool = [...curatedQuestions, ...friendlyQuestions];
+
+    if (pool.length >= TOTAL_QUESTIONS) return pool;
+
+    const poolKeys = new Set(pool.map(questionKey));
+    const fallbackQuestions = entries
+        .filter(entry => !poolKeys.has(entryKey(entry)))
+        .map((entry, index) => toQuestion(entry, pool.length + index));
+
+    return [...pool, ...fallbackQuestions];
+}
+
+function selectRandomQuestions(entries: QuestionEntry[]): Question[] {
+    const pool = buildQuestionPool(entries);
+    const recentKeys = new Set(getRecentQuestionKeys());
+    const freshPool = pool.filter(question => !recentKeys.has(questionKey(question)));
+    const picked = pickRandomQuestions(freshPool.length >= TOTAL_QUESTIONS ? freshPool : pool);
+
+    rememberQuestionKeys(picked);
+    return picked;
 }
 
 function questionHref(question: Question): string {
@@ -263,7 +379,7 @@ export function QuestionCarousel() {
             .then(response => response.json())
             .then((entries: QuestionEntry[]) => {
                 setAllEntries(entries);
-                setQuestions(selectCuratedQuestions(entries));
+                setQuestions(selectRandomQuestions(entries));
             })
             .catch(() => {
                 setAllEntries([]);
@@ -277,7 +393,7 @@ export function QuestionCarousel() {
 
     const handleShuffle = () => {
         if (allEntries.length === 0) return;
-        setQuestions(shuffleQuestions(allEntries));
+        setQuestions(selectRandomQuestions(allEntries));
     };
 
     if (loading) {
