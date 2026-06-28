@@ -33,53 +33,53 @@ interface CuratedPrompt {
 const CURATED_PROMPTS: CuratedPrompt[] = [
     {
         topic: 'Wisdom',
-        question: 'What do the hadiths say about wisdom?',
+        question: 'Where does true wisdom begin?',
         chapterTitle: 'WISDOM',
         sectionTitle: 'THE VIRTUE OF WISDOM',
     },
     {
         topic: 'Good manners',
-        question: 'How is character refined in the narrations?',
+        question: 'What forms noble character?',
         chapterTitle: 'GOOD MANNERS',
         sectionTitle: 'The Virtue of Good Manners',
     },
     {
         topic: 'Prayer',
-        question: 'What place does prayer hold in spiritual life?',
+        question: 'What gives prayer its weight?',
         chapterTitle: 'THE PRAYER (1)',
         sectionTitle: 'THE VIRTUE OF PRAYER',
     },
     {
         topic: 'Patience',
-        question: 'What is taught about patience in hardship?',
+        question: 'How is patience carried through hardship?',
         chapterTitle: 'PATIENCE',
         sectionTitle: 'The Virtue of Patience',
     },
     {
         topic: 'Repentance',
-        question: 'What opens the door to repentance?',
+        question: 'How does a person return to Allah?',
         chapterTitle: 'REPENTANCE',
         sectionTitle: 'Enjoinment of Repenting',
     },
     {
         topic: 'Fairness',
-        question: 'How do the hadiths speak about fairness?',
+        question: 'What does fairness require of the self?',
         chapterTitle: 'FAIRNESS',
         sectionTitle: 'Enjoinment of Fairness',
     },
     {
         topic: 'Knowledge',
-        question: 'What is the virtue of seeking knowledge?',
+        question: 'Why is seeking knowledge so honored?',
         chapterTitle: 'KNOWLEDGE',
         sectionTitle: 'THE VIRTUE OF KNOWLEDGE',
     },
 ];
 
 const QUESTION_TEMPLATES = [
-    (topic: string) => `What do the hadiths say about ${topic}?`,
-    (topic: string) => `What wisdom is shared regarding ${topic}?`,
-    (topic: string) => `How do the narrations guide us on ${topic}?`,
-    (topic: string) => `What is taught about ${topic}?`,
+    (topic: string) => `What guidance is gathered on ${topic}?`,
+    (topic: string) => `How do the narrations frame ${topic}?`,
+    (topic: string) => `Where does guidance on ${topic} meet daily conduct?`,
+    (topic: string) => `What does Mizan al-Hikmah preserve on ${topic}?`,
 ];
 
 const PROPER_NOUN_MAP: Record<string, string> = {
@@ -102,6 +102,7 @@ const PROPER_NOUN_MAP: Record<string, string> = {
     'mahdi': 'Mahdi',
     'jesus': 'Jesus',
     'moses': 'Moses',
+    'khidr': 'Khidr',
     'abraham': 'Abraham',
 };
 
@@ -134,9 +135,62 @@ function topicFromTitle(raw: string): string {
     );
 }
 
+function subjectFromSection(raw: string): string {
+    const subject = capitalizeProperNouns(
+        toTitleCase(raw)
+            .replace(/\s*\([^)]*\)\s*/g, ' ')
+            .replace(/^The\s+Virtue\s+Of\s+/i, '')
+            .replace(/^Virtue\s+Of\s+/i, '')
+            .replace(/^The\s+Merit\s+Of\s+/i, '')
+            .replace(/^Merit\s+Of\s+/i, '')
+            .replace(/^Enjoinment\s+Of\s+/i, '')
+            .replace(/^Prohibition\s+Of\s+/i, '')
+            .replace(/^Condemnation\s+Of\s+/i, '')
+            .toLowerCase()
+            .replace(/\s+/g, ' ')
+            .trim()
+    );
+
+    if (/^(importance|necessity|reality|meaning|signs|reward|punishment|benefit|etiquette)\b/i.test(subject)) {
+        return `the ${subject}`;
+    }
+
+    return subject;
+}
+
 function questionFromEntry(entry: QuestionEntry, index: number): string {
-    const topic = topicFromTitle(entry.t);
+    const sectionTitle = toTitleCase(entry.t);
+    const topic = subjectFromSection(sectionTitle);
+
+    if (/^(The\s+)?Virtue\s+Of\s+/i.test(sectionTitle)) {
+        return `What gives weight to ${topic}?`;
+    }
+
+    if (/^Enjoinment\s+Of\s+/i.test(sectionTitle)) {
+        return `What calls a person toward ${topic}?`;
+    }
+
+    if (/^Prohibition\s+Of\s+/i.test(sectionTitle)) {
+        return `What cautions are given around ${topic}?`;
+    }
+
+    if (/^Condemnation\s+Of\s+/i.test(sectionTitle)) {
+        return `What warning is given about ${topic}?`;
+    }
+
     return QUESTION_TEMPLATES[index % QUESTION_TEMPLATES.length](topic);
+}
+
+function isQuestionFriendlyEntry(entry: QuestionEntry): boolean {
+    const subject = subjectFromSection(entry.t);
+
+    if (subject.length === 0 || subject.length > 48) return false;
+    if (/["'\u201c\u201d]|\.{2,}/.test(subject)) return false;
+    if (/\band\b/i.test(subject) && subject.length > 28) return false;
+
+    return !/^(that which|the fact|those who|one who|he who|whoever|what to|whether)\b/i.test(subject) &&
+        !/\b(is|are|was|were|will|shall|should|must|has|have|had)\b/i.test(subject) &&
+        !/^(encouraging|discouraging|exhorting)\b/i.test(subject);
 }
 
 function toQuestion(entry: QuestionEntry, index: number, prompt?: CuratedPrompt): Question {
@@ -173,6 +227,7 @@ function selectCuratedQuestions(entries: QuestionEntry[]): Question[] {
 
     const used = new Set(selected.map(question => `${question.volume}-${question.chapterNum}-${question.sectionNum}`));
     const fill = entries
+        .filter(isQuestionFriendlyEntry)
         .filter(entry => !used.has(`${entry.v}-${entry.c}-${entry.s}`))
         .filter((_, index) => index % 173 === 0)
         .slice(0, TOTAL_QUESTIONS - selected.length)
@@ -182,7 +237,8 @@ function selectCuratedQuestions(entries: QuestionEntry[]): Question[] {
 }
 
 function shuffleQuestions(entries: QuestionEntry[]): Question[] {
-    const pool = [...entries];
+    const friendlyEntries = entries.filter(isQuestionFriendlyEntry);
+    const pool = [...(friendlyEntries.length >= TOTAL_QUESTIONS ? friendlyEntries : entries)];
     const picked: QuestionEntry[] = [];
 
     while (picked.length < TOTAL_QUESTIONS && pool.length > 0) {
