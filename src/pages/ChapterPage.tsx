@@ -8,23 +8,40 @@ import { useScrollRestoration } from '../hooks/useScrollRestoration';
 
 export function ChapterPage() {
     const { volumeNum, chapterNum } = useParams();
-    const [chapter, setChapter] = useState<Chapter | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [chapterState, setChapterState] = useState<{
+        volumeNum: string;
+        chapterNum: string;
+        chapter: Chapter | null;
+    }>({
+        volumeNum: '',
+        chapterNum: '',
+        chapter: null,
+    });
     const [activeSectionNum, setActiveSectionNum] = useState<number | null>(null);
     const navStripRef = useRef<HTMLDivElement>(null);
+    const chapterIsCurrent = chapterState.volumeNum === volumeNum && chapterState.chapterNum === chapterNum;
+    const chapter = chapterIsCurrent ? chapterState.chapter : null;
+    const loading = Boolean(volumeNum && chapterNum) && !chapterIsCurrent;
 
     useScrollRestoration(!loading);
 
     useEffect(() => {
-        if (volumeNum && chapterNum) {
-            setLoading(true);
-            loadVolume(parseInt(volumeNum))
-                .then(data => {
-                    const found = data.find(c => c.chapter_num === parseInt(chapterNum));
-                    setChapter(found || null);
-                })
-                .finally(() => setLoading(false));
-        }
+        if (!volumeNum || !chapterNum) return;
+        let active = true;
+
+        loadVolume(parseInt(volumeNum)).then(data => {
+            if (!active) return;
+            const found = data.find(c => c.chapter_num === parseInt(chapterNum));
+            setChapterState({
+                volumeNum,
+                chapterNum,
+                chapter: found || null,
+            });
+        });
+
+        return () => {
+            active = false;
+        };
     }, [volumeNum, chapterNum]);
 
     // Track which section is in view

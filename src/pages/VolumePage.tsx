@@ -8,18 +8,34 @@ import { useScrollRestoration } from '../hooks/useScrollRestoration';
 
 export function VolumePage() {
     const { volumeNum } = useParams();
-    const [data, setData] = useState<VolumeData | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [volumeState, setVolumeState] = useState<{
+        volumeNum: string;
+        data: VolumeData | null;
+    }>({
+        volumeNum: '',
+        data: null,
+    });
+    const data = volumeState.volumeNum === volumeNum ? volumeState.data : null;
+    const loading = Boolean(volumeNum) && volumeState.volumeNum !== volumeNum;
 
     useScrollRestoration(!loading);
 
     useEffect(() => {
-        if (volumeNum) {
-            setLoading(true);
-            loadVolume(parseInt(volumeNum))
-                .then(setData)
-                .finally(() => setLoading(false));
-        }
+        if (!volumeNum) return;
+        let active = true;
+
+        loadVolume(parseInt(volumeNum)).then(nextData => {
+            if (active) {
+                setVolumeState({
+                    volumeNum,
+                    data: nextData,
+                });
+            }
+        });
+
+        return () => {
+            active = false;
+        };
     }, [volumeNum]);
 
     if (loading) {

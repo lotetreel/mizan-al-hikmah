@@ -21,11 +21,16 @@ export interface Chapter {
 
 export type VolumeData = Chapter[];
 
+export type SearchMatchField = 'arabic' | 'english' | 'chapter' | 'section';
+export type HeadingMatchField = 'englishTitle' | 'arabicTitle';
+
 export interface SearchResult {
     volume: number;
     chapter: Chapter;
     section: Section;
     hadith: Hadith;
+    score: number;
+    matchedFields: SearchMatchField[];
 }
 
 export interface HeadingResult {
@@ -35,6 +40,15 @@ export interface HeadingResult {
     volume: number;
     chapterId: number;
     sectionId?: number;
+    score: number;
+    matchedFields: HeadingMatchField[];
+}
+
+export interface SearchResultsBundle {
+    headingResults: HeadingResult[];
+    hadithResults: SearchResult[];
+    totalHeadingMatches: number;
+    totalHadithMatches: number;
 }
 
 export interface FavoriteHadith {

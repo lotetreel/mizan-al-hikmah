@@ -1,0 +1,32 @@
+{
+  "name": "Mizan al Hikmah",
+  "short_name": "Mizan",
+  "description": "A searchable offline reader for Mizan al Hikmah, The Scale of Wisdom.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0f2338",
+  "theme_color": "#0f2338",
+  "orientation": "portrait-primary",
+  "categories": ["books", "education", "reference"],
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

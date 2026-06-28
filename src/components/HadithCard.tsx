@@ -7,6 +7,7 @@ import { cn } from '../lib/utils';
 import { HadithShareModal } from './HadithShareModal';
 import { useFontSettings } from '../contexts/FontSettingsContext';
 import { useFavorites } from '../contexts/FavoritesContext';
+import { HighlightedText } from './HighlightedText';
 
 interface HadithCardProps {
     hadith: Hadith;
@@ -18,6 +19,7 @@ interface HadithCardProps {
     sectionTitleEn: string;
     sectionTitleAr: string;
     showChapterInfo?: boolean;
+    highlightQuery?: string;
 }
 
 const DOUBLE_TAP_MS = 300;
@@ -43,6 +45,7 @@ export function HadithCard({
     sectionTitleEn,
     sectionTitleAr,
     showChapterInfo,
+    highlightQuery = '',
 }: HadithCardProps) {
     const [copied, setCopied] = useState(false);
     const [copiedArabic, setCopiedArabic] = useState(false);
@@ -194,7 +197,7 @@ export function HadithCard({
                                 fontSize: `${settings.arabicFontSize}px`
                             }}
                         >
-                            {hadith.arabic}
+                            <HighlightedText text={hadith.arabic} query={highlightQuery} />
                         </p>
                     </div>
 
@@ -204,7 +207,7 @@ export function HadithCard({
                             fontSize: `${settings.englishFontSize}px`
                         }}
                     >
-                        {hadith.english}
+                        <HighlightedText text={hadith.english} query={highlightQuery} />
                     </p>
 
                     <div className="flex justify-end gap-2 pt-2">

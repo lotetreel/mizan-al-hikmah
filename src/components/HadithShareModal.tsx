@@ -140,23 +140,19 @@ export function HadithShareModal({ isOpen, onClose, hadith, volume, chapterNum, 
 
         const element = ref.current;
 
-        try {
-            const dataUrl = await toPng(element, {
-                cacheBust: true,
-                pixelRatio: 3, // Increased quality since we are capturing at display size
-                backgroundColor: selectedTheme.background.includes('gradient') ? undefined : selectedTheme.background,
-                height: element.scrollHeight,
-                style: {
-                    height: 'auto',
-                    maxHeight: 'none',
-                    overflow: 'visible'
-                }
-            });
+        const dataUrl = await toPng(element, {
+            cacheBust: true,
+            pixelRatio: 3, // Increased quality since we are capturing at display size
+            backgroundColor: selectedTheme.background.includes('gradient') ? undefined : selectedTheme.background,
+            height: element.scrollHeight,
+            style: {
+                height: 'auto',
+                maxHeight: 'none',
+                overflow: 'visible'
+            }
+        });
 
-            return dataUrl;
-        } catch (error) {
-            throw error;
-        }
+        return dataUrl;
     };
 
     const handleDownload = async () => {
