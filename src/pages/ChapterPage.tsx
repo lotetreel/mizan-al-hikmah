@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useLocation, useParams, Link } from 'react-router-dom';
 import { loadVolume } from '../lib/data';
 import type { Chapter } from '../lib/types';
 import { HadithFeed } from '../components/HadithFeed';
@@ -8,6 +8,7 @@ import { useScrollRestoration } from '../hooks/useScrollRestoration';
 
 export function ChapterPage() {
     const { volumeNum, chapterNum } = useParams();
+    const { hash } = useLocation();
     const [chapterState, setChapterState] = useState<{
         volumeNum: string;
         chapterNum: string;
@@ -43,6 +44,26 @@ export function ChapterPage() {
             active = false;
         };
     }, [volumeNum, chapterNum]);
+
+    // Chapter data is loaded asynchronously, so the browser's initial anchor
+    // jump can run before the requested section exists in the DOM.
+    useEffect(() => {
+        if (!chapter) return;
+
+        const sectionMatch = hash.match(/^#section-(\d+)$/);
+        if (!sectionMatch) return;
+
+        const sectionNum = parseInt(sectionMatch[1], 10);
+        const raf = requestAnimationFrame(() => {
+            const section = document.getElementById(`section-${sectionNum}`);
+            if (!section) return;
+
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            setActiveSectionNum(sectionNum);
+        });
+
+        return () => cancelAnimationFrame(raf);
+    }, [chapter, hash]);
 
     // Track which section is in view
     useEffect(() => {
