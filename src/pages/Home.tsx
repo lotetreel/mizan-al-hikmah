@@ -1,10 +1,10 @@
 import { VolumeSelector } from '../components/VolumeSelector';
-import { QuestionCarousel } from '../components/QuestionCarousel';
+import { RandomHadithSpotlight } from '../components/RandomHadithSpotlight';
 import { motion } from 'framer-motion';
 
 export function Home() {
     return (
-        <div className="space-y-12 py-12">
+        <div className="pt-12">
             <div className="text-center space-y-4">
                 <motion.h1
                     initial={{ opacity: 0, y: -20 }}
@@ -23,9 +23,13 @@ export function Home() {
                 </motion.p>
             </div>
 
-            <QuestionCarousel />
+            <div className="mt-12">
+                <RandomHadithSpotlight />
+            </div>
 
-            <VolumeSelector />
+            <div className="mt-8">
+                <VolumeSelector />
+            </div>
         </div>
     );
 }
