@@ -25,6 +25,8 @@ interface HadithShareModalProps {
 }
 
 type SharePageKind = 'combined' | 'arabic' | 'english';
+type ShareOutputMode = 'readable-set' | 'single-bilingual';
+type ShareCardLayout = 'square' | 'portrait';
 
 interface ParsedHadithText {
     attribution: string | null;
@@ -46,6 +48,7 @@ interface SharePage {
 interface ShareCardProps {
     page: SharePage;
     theme: ShareTheme;
+    layout: ShareCardLayout;
     volume: number;
     chapterTitle?: string;
     hadithNumber: number;
@@ -293,6 +296,22 @@ function buildSharePages(hadith: Hadith): SharePage[] {
     }));
 }
 
+function buildBilingualSharePage(hadith: Hadith): SharePage {
+    const arabic = parseArabicHadith(hadith.arabic);
+    const english = parseEnglishHadith(hadith.english);
+
+    return {
+        id: 'single-bilingual',
+        kind: 'combined',
+        arabic: arabic.text,
+        arabicAttribution: arabic.attribution,
+        english: english.text,
+        englishAttribution: english.attribution,
+        pageNumber: 1,
+        totalPages: 1,
+    };
+}
+
 function arabicFontSize(page: SharePage): string {
     const length = page.arabic?.length ?? 0;
     if (page.kind === 'combined') {
@@ -416,6 +435,7 @@ function FittedShareContent({
 function ShareCard({
     page,
     theme,
+    layout,
     volume,
     chapterTitle,
     hadithNumber,
@@ -424,14 +444,77 @@ function ShareCard({
 }: ShareCardProps) {
     const title = displayTitle(chapterTitle);
     const isCombined = page.kind === 'combined';
+    const isPortrait = layout === 'portrait';
     const sourceFontSize = title.length > 28 ? '1.9cqw' : '2.45cqw';
+    const spacingClass = page.isExcerpt ? 'gap-[1.6cqw]' : isCombined ? 'gap-[3cqw]' : 'gap-[4.2cqw]';
+    const shareContent = (
+        <>
+            {page.arabic && (
+                <div className="w-full">
+                    <p
+                        className="font-arabic"
+                        dir="rtl"
+                        style={{
+                            fontSize: arabicFontSize(page),
+                            lineHeight: page.kind === 'combined' ? 1.58 : 1.62,
+                            color: theme.primaryText,
+                        }}
+                    >
+                        {page.arabic}
+                    </p>
+                    {page.arabicAttribution && (
+                        <p
+                            className="mt-[2.3cqw] font-arabic"
+                            dir="rtl"
+                            style={{
+                                fontSize: page.isExcerpt ? '2.55cqw' : isCombined ? '3.7cqw' : '3.65cqw',
+                                lineHeight: 1.45,
+                                color: theme.secondaryText,
+                            }}
+                        >
+                            {page.arabicAttribution}
+                        </p>
+                    )}
+                </div>
+            )}
+
+            {isCombined && <ShareDivider theme={theme} />}
+
+            {page.english && (
+                <div className="w-full">
+                    <p
+                        className="font-serif"
+                        style={{
+                            fontSize: englishFontSize(page),
+                            lineHeight: 1.28,
+                            color: theme.primaryText,
+                        }}
+                    >
+                        {page.english}
+                    </p>
+                    {page.englishAttribution && (
+                        <p
+                            className="mt-[2.1cqw] font-sans font-medium"
+                            style={{
+                                fontSize: page.isExcerpt ? '2.35cqw' : isCombined ? '3cqw' : '3.15cqw',
+                                lineHeight: 1.35,
+                                color: theme.secondaryText,
+                            }}
+                        >
+                            {page.englishAttribution}
+                        </p>
+                    )}
+                </div>
+            )}
+        </>
+    );
 
     return (
         <div
             ref={captureRef}
             data-testid={testId}
             data-theme={theme.id}
-            className="relative aspect-square w-full overflow-hidden transition-colors duration-300"
+            className={`relative w-full overflow-hidden transition-colors duration-300 ${isPortrait ? '' : 'aspect-square'}`}
             style={{
                 containerType: 'inline-size',
                 backgroundColor: theme.background,
@@ -458,7 +541,10 @@ function ShareCard({
                 </span>
             )}
 
-            <div className="flex h-full flex-col px-[7.4cqw] pb-[5.5cqw] pt-[5.8cqw] text-center">
+            <div
+                className={`flex flex-col px-[7.4cqw] pb-[5.5cqw] pt-[5.8cqw] text-center ${isPortrait ? '' : 'h-full'}`}
+                style={isPortrait ? { minHeight: '100cqw' } : undefined}
+            >
                 <header className="flex shrink-0 flex-col items-center">
                     <BookOpen
                         className="h-[5.8cqw] w-[5.8cqw]"
@@ -474,68 +560,23 @@ function ShareCard({
                     </div>
                 </header>
 
-                <FittedShareContent
-                    fitKey={`${page.id}-${theme.id}-${page.arabic?.length ?? 0}-${page.english?.length ?? 0}`}
-                    spacingClass={page.isExcerpt ? 'gap-[1.6cqw]' : isCombined ? 'gap-[3cqw]' : 'gap-[4.2cqw]'}
-                >
-                    {page.arabic && (
-                        <div className="w-full">
-                            <p
-                                className="font-arabic"
-                                dir="rtl"
-                                style={{
-                                    fontSize: arabicFontSize(page),
-                                    lineHeight: page.kind === 'combined' ? 1.58 : 1.62,
-                                    color: theme.primaryText,
-                                }}
-                            >
-                                {page.arabic}
-                            </p>
-                            {page.arabicAttribution && (
-                                <p
-                                    className="mt-[2.3cqw] font-arabic"
-                                    dir="rtl"
-                                    style={{
-                                        fontSize: page.isExcerpt ? '2.55cqw' : isCombined ? '3.7cqw' : '3.65cqw',
-                                        lineHeight: 1.45,
-                                        color: theme.secondaryText,
-                                    }}
-                                >
-                                    {page.arabicAttribution}
-                                </p>
-                            )}
+                {isPortrait ? (
+                    <main className="flex flex-1 items-center justify-center py-[7cqw]">
+                        <div
+                            data-share-content="true"
+                            className={`flex w-full flex-col items-center ${spacingClass}`}
+                        >
+                            {shareContent}
                         </div>
-                    )}
-
-                    {isCombined && <ShareDivider theme={theme} />}
-
-                    {page.english && (
-                        <div className="w-full">
-                            <p
-                                className="font-serif"
-                                style={{
-                                    fontSize: englishFontSize(page),
-                                    lineHeight: 1.28,
-                                    color: theme.primaryText,
-                                }}
-                            >
-                                {page.english}
-                            </p>
-                            {page.englishAttribution && (
-                                <p
-                                    className="mt-[2.1cqw] font-sans font-medium"
-                                    style={{
-                                        fontSize: page.isExcerpt ? '2.35cqw' : isCombined ? '3cqw' : '3.15cqw',
-                                        lineHeight: 1.35,
-                                        color: theme.secondaryText,
-                                    }}
-                                >
-                                    {page.englishAttribution}
-                                </p>
-                            )}
-                        </div>
-                    )}
-                </FittedShareContent>
+                    </main>
+                ) : (
+                    <FittedShareContent
+                        fitKey={`${page.id}-${theme.id}-${layout}-${page.arabic?.length ?? 0}-${page.english?.length ?? 0}`}
+                        spacingClass={spacingClass}
+                    >
+                        {shareContent}
+                    </FittedShareContent>
+                )}
 
                 <footer className="shrink-0">
                     <p
@@ -580,13 +621,19 @@ async function combineImagesVertically(dataUrls: string[]): Promise<string> {
     })));
 
     const canvas = document.createElement('canvas');
-    canvas.width = EXPORT_CARD_SIZE * EXPORT_PIXEL_RATIO;
-    canvas.height = canvas.width * images.length;
+    canvas.width = images[0]?.naturalWidth ?? EXPORT_CARD_SIZE * EXPORT_PIXEL_RATIO;
+    const renderedHeights = images.map(image => (
+        Math.round((image.naturalHeight / image.naturalWidth) * canvas.width)
+    ));
+    canvas.height = renderedHeights.reduce((total, height) => total + height, 0);
     const context = canvas.getContext('2d');
     if (!context) throw new Error('Unable to create image canvas');
 
+    let y = 0;
     images.forEach((image, index) => {
-        context.drawImage(image, 0, index * canvas.width, canvas.width, canvas.width);
+        const height = renderedHeights[index];
+        context.drawImage(image, 0, y, canvas.width, height);
+        y += height;
     });
 
     return canvas.toDataURL('image/png');
@@ -616,10 +663,14 @@ export function HadithShareModal({
     const captureRefs = useRef<Array<HTMLDivElement | null>>([]);
     const [currentPageIndex, setCurrentPageIndex] = useState(0);
     const [currentThemeIndex, setCurrentThemeIndex] = useState(0);
+    const [outputMode, setOutputMode] = useState<ShareOutputMode>('readable-set');
     const [isGenerating, setIsGenerating] = useState(false);
     const [isSharing, setIsSharing] = useState(false);
     const [notice, setNotice] = useState<string | null>(null);
-    const pages = useMemo(() => buildSharePages(hadith), [hadith]);
+    const readablePages = useMemo(() => buildSharePages(hadith), [hadith]);
+    const bilingualPage = useMemo(() => buildBilingualSharePage(hadith), [hadith]);
+    const pages = outputMode === 'single-bilingual' ? [bilingualPage] : readablePages;
+    const cardLayout: ShareCardLayout = outputMode === 'single-bilingual' ? 'portrait' : 'square';
     const currentPage = pages[Math.min(currentPageIndex, pages.length - 1)];
     const currentTheme = SHARE_THEMES[currentThemeIndex];
     const permalink = `${window.location.origin}/volume/${volume}/chapter/${chapterNum}#h-${hadith.hadith_num}`;
@@ -632,15 +683,19 @@ export function HadithShareModal({
             const element = captureRefs.current[index];
             if (!element) throw new Error(`Missing share card ${index + 1}`);
 
+            const captureHeight = cardLayout === 'square'
+                ? EXPORT_CARD_SIZE
+                : Math.ceil(Math.max(element.getBoundingClientRect().height, element.scrollHeight));
+
             return toPng(element, {
                 cacheBust: true,
                 pixelRatio: EXPORT_PIXEL_RATIO,
                 width: EXPORT_CARD_SIZE,
-                height: EXPORT_CARD_SIZE,
+                height: captureHeight,
                 backgroundColor: currentTheme.background,
                 style: {
                     width: `${EXPORT_CARD_SIZE}px`,
-                    height: `${EXPORT_CARD_SIZE}px`,
+                    height: `${captureHeight}px`,
                 },
             });
         }));
@@ -659,7 +714,11 @@ export function HadithShareModal({
         try {
             const dataUrls = await generatePageDataUrls();
             downloadDataUrls(dataUrls);
-            setNotice(dataUrls.length > 1 ? `${dataUrls.length} square images downloaded in order.` : 'Square image downloaded.');
+            setNotice(dataUrls.length > 1
+                ? `${dataUrls.length} square images downloaded in order.`
+                : outputMode === 'single-bilingual'
+                    ? 'Bilingual portrait image downloaded.'
+                    : 'Square image downloaded.');
         } catch (error) {
             console.error('Failed to generate share image', error);
             setNotice('The image could not be generated. Please try again.');
@@ -678,7 +737,7 @@ export function HadithShareModal({
                 const suffix = dataUrls.length > 1 ? `-${index + 1}-of-${dataUrls.length}` : '';
                 return dataUrlToFile(dataUrl, `mizan-hadith-${hadith.hadith_num}-${currentTheme.id}${suffix}.png`);
             }));
-            const shareText = `Read Hadith ${hadith.hadith_num} in Mizan al Hikmah: ${permalink}`;
+            const shareText = `Read Hadith ${hadith.hadith_num} in Mizan al Hikmah:\n${permalink}`;
 
             if (navigator.share) {
                 const canShareFiles = !navigator.canShare || navigator.canShare({ files });
@@ -687,7 +746,6 @@ export function HadithShareModal({
                     await navigator.share({
                         title: `Hadith ${hadith.hadith_num} — Mizan al Hikmah`,
                         text: shareText,
-                        url: permalink,
                         files,
                     });
                     return;
@@ -703,7 +761,6 @@ export function HadithShareModal({
                     await navigator.share({
                         title: `Hadith ${hadith.hadith_num} — Mizan al Hikmah`,
                         text: shareText,
-                        url: permalink,
                         files: [combinedFile],
                     });
                     return;
@@ -744,6 +801,12 @@ export function HadithShareModal({
         setCurrentThemeIndex(index);
     };
 
+    const selectOutputMode = (mode: ShareOutputMode) => {
+        setNotice(null);
+        setCurrentPageIndex(0);
+        setOutputMode(mode);
+    };
+
     return (
         <AnimatePresence>
             {isOpen && (
@@ -759,7 +822,9 @@ export function HadithShareModal({
                             <div>
                                 <h3 className="font-serif text-lg font-bold text-slate-950 dark:text-white">Share Hadith</h3>
                                 <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                                    {pages[0]?.isExcerpt
+                                    {outputMode === 'single-bilingual'
+                                        ? 'One bilingual image that grows with the hadith.'
+                                        : pages[0]?.isExcerpt
                                         ? 'A concise excerpt image; the full hadith link is included when shared.'
                                         : pages.length === 1
                                         ? 'A square image, ready for messages and social apps.'
@@ -777,16 +842,64 @@ export function HadithShareModal({
                         </header>
 
                         <div className="min-h-0 flex-1 overflow-y-auto bg-slate-100 px-3 py-4 dark:bg-slate-950 sm:px-8 sm:py-6">
-                            <div className="mx-auto w-full max-w-[540px] overflow-hidden rounded-md shadow-xl shadow-slate-900/10">
+                            <div
+                                role="radiogroup"
+                                aria-label="Image format"
+                                className="mx-auto mb-4 grid w-full max-w-[540px] grid-cols-2 gap-1 rounded-xl bg-white p-1 shadow-sm dark:bg-slate-900"
+                            >
+                                <button
+                                    type="button"
+                                    role="radio"
+                                    aria-checked={outputMode === 'readable-set'}
+                                    onClick={() => selectOutputMode('readable-set')}
+                                    disabled={isGenerating || isSharing}
+                                    className={`rounded-lg px-2 py-2.5 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:opacity-50 ${
+                                        outputMode === 'readable-set'
+                                            ? 'bg-primary-600 text-white'
+                                            : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+                                    }`}
+                                >
+                                    <span className="block text-sm font-semibold">Readable set</span>
+                                    <span className={`block text-[11px] ${outputMode === 'readable-set' ? 'text-primary-100' : 'text-slate-400'}`}>
+                                        Square pages
+                                    </span>
+                                </button>
+                                <button
+                                    type="button"
+                                    role="radio"
+                                    aria-checked={outputMode === 'single-bilingual'}
+                                    onClick={() => selectOutputMode('single-bilingual')}
+                                    disabled={isGenerating || isSharing}
+                                    className={`rounded-lg px-2 py-2.5 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:opacity-50 ${
+                                        outputMode === 'single-bilingual'
+                                            ? 'bg-primary-600 text-white'
+                                            : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+                                    }`}
+                                >
+                                    <span className="block text-sm font-semibold">Single bilingual</span>
+                                    <span className={`block text-[11px] ${outputMode === 'single-bilingual' ? 'text-primary-100' : 'text-slate-400'}`}>
+                                        One portrait image
+                                    </span>
+                                </button>
+                            </div>
+
+                            <div className={`mx-auto w-full max-w-[540px] rounded-md shadow-xl shadow-slate-900/10 ${cardLayout === 'portrait' ? 'max-h-[65vh] overflow-y-auto' : 'overflow-hidden'}`}>
                                 <ShareCard
                                     page={currentPage}
                                     theme={currentTheme}
+                                    layout={cardLayout}
                                     volume={volume}
                                     chapterTitle={chapterTitle}
                                     hadithNumber={hadith.hadith_num}
                                     testId="share-preview-card"
                                 />
                             </div>
+
+                            {cardLayout === 'portrait' && (
+                                <p className="mx-auto mt-2 max-w-[540px] text-center text-xs text-slate-500 dark:text-slate-400">
+                                    Scroll the preview to see the full image.
+                                </p>
+                            )}
 
                             <div
                                 className="mx-auto mt-4 flex max-w-[540px] items-center gap-2 rounded-xl bg-white p-2.5 shadow-sm dark:bg-slate-900"
@@ -913,12 +1026,16 @@ export function HadithShareModal({
                         >
                             {pages.map((page, index) => (
                                 <div
-                                    key={`${page.id}-${currentTheme.id}`}
-                                    style={{ width: EXPORT_CARD_SIZE, height: EXPORT_CARD_SIZE }}
+                                    key={`${outputMode}-${page.id}-${currentTheme.id}`}
+                                    style={{
+                                        width: EXPORT_CARD_SIZE,
+                                        ...(cardLayout === 'square' ? { height: EXPORT_CARD_SIZE } : {}),
+                                    }}
                                 >
                                     <ShareCard
                                         page={page}
                                         theme={currentTheme}
+                                        layout={cardLayout}
                                         volume={volume}
                                         chapterTitle={chapterTitle}
                                         hadithNumber={hadith.hadith_num}
