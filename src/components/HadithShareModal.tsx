@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { toPng } from 'html-to-image';
 import {
     BookOpen,
@@ -333,6 +334,85 @@ function ShareDivider({ theme }: { theme: ShareTheme }) {
     );
 }
 
+function FittedShareContent({
+    children,
+    fitKey,
+    spacingClass,
+}: {
+    children: ReactNode;
+    fitKey: string;
+    spacingClass: string;
+}) {
+    const frameRef = useRef<HTMLElement>(null);
+    const contentRef = useRef<HTMLDivElement>(null);
+    const [scale, setScale] = useState(1);
+
+    useLayoutEffect(() => {
+        const frame = frameRef.current;
+        const content = contentRef.current;
+        if (!frame || !content) return;
+
+        let animationFrame = 0;
+        let cancelled = false;
+
+        const measure = () => {
+            if (cancelled) return;
+
+            const availableHeight = frame.clientHeight;
+            const requiredHeight = content.scrollHeight;
+            if (!availableHeight || !requiredHeight) return;
+
+            const fitScale = Math.min(1, (availableHeight * 0.96) / requiredHeight);
+            const nextScale = Math.max(0.68, fitScale);
+            setScale(currentScale => (
+                Math.abs(currentScale - nextScale) < 0.002 ? currentScale : nextScale
+            ));
+        };
+
+        const scheduleMeasure = () => {
+            cancelAnimationFrame(animationFrame);
+            animationFrame = requestAnimationFrame(measure);
+        };
+
+        scheduleMeasure();
+        void document.fonts.ready.then(scheduleMeasure);
+
+        const resizeObserver = typeof ResizeObserver === 'undefined'
+            ? null
+            : new ResizeObserver(scheduleMeasure);
+        resizeObserver?.observe(frame);
+        resizeObserver?.observe(content);
+        window.addEventListener('resize', scheduleMeasure);
+
+        return () => {
+            cancelled = true;
+            cancelAnimationFrame(animationFrame);
+            resizeObserver?.disconnect();
+            window.removeEventListener('resize', scheduleMeasure);
+        };
+    }, [fitKey]);
+
+    return (
+        <main
+            ref={frameRef}
+            className="flex min-h-0 flex-1 items-center justify-center overflow-hidden"
+        >
+            <div
+                ref={contentRef}
+                data-share-content="true"
+                data-fit-scale={scale.toFixed(3)}
+                className={`flex w-full flex-col items-center ${spacingClass}`}
+                style={{
+                    transform: `scale(${scale})`,
+                    transformOrigin: 'center center',
+                }}
+            >
+                {children}
+            </div>
+        </main>
+    );
+}
+
 function ShareCard({
     page,
     theme,
@@ -394,8 +474,9 @@ function ShareCard({
                     </div>
                 </header>
 
-                <main
-                    className={`flex min-h-0 flex-1 flex-col items-center justify-center ${page.isExcerpt ? 'gap-[1.6cqw]' : isCombined ? 'gap-[3cqw]' : 'gap-[4.2cqw]'}`}
+                <FittedShareContent
+                    fitKey={`${page.id}-${theme.id}-${page.arabic?.length ?? 0}-${page.english?.length ?? 0}`}
+                    spacingClass={page.isExcerpt ? 'gap-[1.6cqw]' : isCombined ? 'gap-[3cqw]' : 'gap-[4.2cqw]'}
                 >
                     {page.arabic && (
                         <div className="w-full">
@@ -454,7 +535,7 @@ function ShareCard({
                             )}
                         </div>
                     )}
-                </main>
+                </FittedShareContent>
 
                 <footer className="shrink-0">
                     <p
@@ -518,6 +599,12 @@ function triggerDownload(dataUrl: string, filename: string) {
     link.click();
 }
 
+function waitForShareLayout(): Promise<void> {
+    return new Promise(resolve => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    });
+}
+
 export function HadithShareModal({
     isOpen,
     onClose,
@@ -539,6 +626,7 @@ export function HadithShareModal({
 
     const generatePageDataUrls = async () => {
         await document.fonts.ready;
+        await waitForShareLayout();
 
         return Promise.all(pages.map(async (_, index) => {
             const element = captureRefs.current[index];
