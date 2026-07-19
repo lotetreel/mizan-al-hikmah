@@ -27,6 +27,7 @@ interface HadithShareModalProps {
 type SharePageKind = 'combined' | 'arabic' | 'english';
 type ShareOutputMode = 'readable-set' | 'single-bilingual';
 type ShareCardLayout = 'square' | 'portrait';
+type ShareCardStyle = 'classic' | 'minimal';
 
 interface ParsedHadithText {
     attribution: string | null;
@@ -49,6 +50,7 @@ interface ShareCardProps {
     page: SharePage;
     theme: ShareTheme;
     layout: ShareCardLayout;
+    cardStyle: ShareCardStyle;
     volume: number;
     chapterTitle?: string;
     hadithNumber: number;
@@ -436,6 +438,7 @@ function ShareCard({
     page,
     theme,
     layout,
+    cardStyle,
     volume,
     chapterTitle,
     hadithNumber,
@@ -445,8 +448,13 @@ function ShareCard({
     const title = displayTitle(chapterTitle);
     const isCombined = page.kind === 'combined';
     const isPortrait = layout === 'portrait';
-    const sourceFontSize = title.length > 28 ? '1.9cqw' : '2.45cqw';
-    const spacingClass = page.isExcerpt ? 'gap-[1.6cqw]' : isCombined ? 'gap-[3cqw]' : 'gap-[4.2cqw]';
+    const isMinimal = cardStyle === 'minimal';
+    const sourceFontSize = isMinimal ? '1.8cqw' : title.length > 28 ? '1.9cqw' : '2.45cqw';
+    const spacingClass = page.isExcerpt
+        ? isMinimal ? 'gap-[2.8cqw]' : 'gap-[1.6cqw]'
+        : isCombined
+            ? isMinimal ? 'gap-[5.2cqw]' : 'gap-[3cqw]'
+            : isMinimal ? 'gap-[5cqw]' : 'gap-[4.2cqw]';
     const shareContent = (
         <>
             {page.arabic && (
@@ -478,7 +486,7 @@ function ShareCard({
                 </div>
             )}
 
-            {isCombined && <ShareDivider theme={theme} />}
+            {isCombined && !isMinimal && <ShareDivider theme={theme} />}
 
             {page.english && (
                 <div className="w-full">
@@ -518,7 +526,7 @@ function ShareCard({
             style={{
                 containerType: 'inline-size',
                 backgroundColor: theme.background,
-                backgroundImage: "url('/hadith-card-paper-texture.png')",
+                backgroundImage: isMinimal ? 'none' : "url('/hadith-card-paper-texture.png')",
                 backgroundBlendMode: 'multiply',
                 backgroundPosition: 'center',
                 backgroundSize: 'cover',
@@ -542,19 +550,23 @@ function ShareCard({
             )}
 
             <div
-                className={`flex flex-col px-[7.4cqw] pb-[5.5cqw] pt-[5.8cqw] text-center ${isPortrait ? '' : 'h-full'}`}
+                className={`flex flex-col text-center ${isMinimal ? 'px-[9.2cqw] pb-[7cqw] pt-[7.2cqw]' : 'px-[7.4cqw] pb-[5.5cqw] pt-[5.8cqw]'} ${isPortrait ? '' : 'h-full'}`}
                 style={isPortrait ? { minHeight: '100cqw' } : undefined}
             >
                 <header className="flex shrink-0 flex-col items-center">
-                    <BookOpen
-                        className="h-[5.8cqw] w-[5.8cqw]"
-                        strokeWidth={1.8}
-                        style={{ color: theme.brand }}
-                        aria-hidden="true"
-                    />
+                    {!isMinimal && (
+                        <BookOpen
+                            className="h-[5.8cqw] w-[5.8cqw]"
+                            strokeWidth={1.8}
+                            style={{ color: theme.brand }}
+                            aria-hidden="true"
+                        />
+                    )}
                     <div
-                        className="mt-[1.5cqw] font-serif text-[4.1cqw] font-semibold tracking-[-0.025em]"
-                        style={{ color: theme.primaryText }}
+                        className={isMinimal
+                            ? 'font-sans text-[2.25cqw] font-semibold uppercase tracking-[0.16em]'
+                            : 'mt-[1.5cqw] font-serif text-[4.1cqw] font-semibold tracking-[-0.025em]'}
+                        style={{ color: isMinimal ? theme.brand : theme.primaryText }}
                     >
                         Mizan al Hikmah
                     </div>
@@ -571,7 +583,7 @@ function ShareCard({
                     </main>
                 ) : (
                     <FittedShareContent
-                        fitKey={`${page.id}-${theme.id}-${layout}-${page.arabic?.length ?? 0}-${page.english?.length ?? 0}`}
+                        fitKey={`${page.id}-${theme.id}-${layout}-${cardStyle}-${page.arabic?.length ?? 0}-${page.english?.length ?? 0}`}
                         spacingClass={spacingClass}
                     >
                         {shareContent}
@@ -580,7 +592,9 @@ function ShareCard({
 
                 <footer className="shrink-0">
                     <p
-                        className="font-serif font-medium"
+                        className={isMinimal
+                            ? 'font-sans font-medium uppercase tracking-[0.08em]'
+                            : 'font-serif font-medium'}
                         style={{ fontSize: sourceFontSize, color: theme.secondaryText }}
                     >
                         Volume {volume}
@@ -589,16 +603,20 @@ function ShareCard({
                         <span className="mx-[1.4cqw]" style={{ color: theme.accent }}>•</span>
                         Hadith {hadithNumber}
                     </p>
+                    {!isMinimal && (
+                        <div
+                            className="mx-auto my-[1.8cqw] h-px w-[22cqw]"
+                            style={{ backgroundColor: theme.accent }}
+                            aria-hidden="true"
+                        />
+                    )}
                     <div
-                        className="mx-auto my-[1.8cqw] h-px w-[22cqw]"
-                        style={{ backgroundColor: theme.accent }}
-                        aria-hidden="true"
-                    />
-                    <div
-                        className="flex items-center justify-center gap-[1.2cqw] font-serif text-[2.45cqw]"
+                        className={`flex items-center justify-center font-serif ${isMinimal ? 'mt-[1.5cqw] text-[1.9cqw]' : 'gap-[1.2cqw] text-[2.45cqw]'}`}
                         style={{ color: theme.brand }}
                     >
-                        <Globe2 className="h-[2.55cqw] w-[2.55cqw]" strokeWidth={1.75} aria-hidden="true" />
+                        {!isMinimal && (
+                            <Globe2 className="h-[2.55cqw] w-[2.55cqw]" strokeWidth={1.75} aria-hidden="true" />
+                        )}
                         <span>mizan-al-hikmah.web.app</span>
                     </div>
                 </footer>
@@ -664,6 +682,7 @@ export function HadithShareModal({
     const [currentPageIndex, setCurrentPageIndex] = useState(0);
     const [currentThemeIndex, setCurrentThemeIndex] = useState(0);
     const [outputMode, setOutputMode] = useState<ShareOutputMode>('readable-set');
+    const [cardStyle, setCardStyle] = useState<ShareCardStyle>('classic');
     const [isGenerating, setIsGenerating] = useState(false);
     const [isSharing, setIsSharing] = useState(false);
     const [notice, setNotice] = useState<string | null>(null);
@@ -704,7 +723,7 @@ export function HadithShareModal({
     const downloadDataUrls = (dataUrls: string[]) => {
         dataUrls.forEach((dataUrl, index) => {
             const suffix = dataUrls.length > 1 ? `-${index + 1}-of-${dataUrls.length}` : '';
-            triggerDownload(dataUrl, `mizan-hadith-${hadith.hadith_num}-${currentTheme.id}${suffix}.png`);
+            triggerDownload(dataUrl, `mizan-hadith-${hadith.hadith_num}-${currentTheme.id}-${cardStyle}${suffix}.png`);
         });
     };
 
@@ -735,7 +754,7 @@ export function HadithShareModal({
             const dataUrls = await generatePageDataUrls();
             const files = await Promise.all(dataUrls.map((dataUrl, index) => {
                 const suffix = dataUrls.length > 1 ? `-${index + 1}-of-${dataUrls.length}` : '';
-                return dataUrlToFile(dataUrl, `mizan-hadith-${hadith.hadith_num}-${currentTheme.id}${suffix}.png`);
+                return dataUrlToFile(dataUrl, `mizan-hadith-${hadith.hadith_num}-${currentTheme.id}-${cardStyle}${suffix}.png`);
             }));
             const shareText = `Read Hadith ${hadith.hadith_num} in Mizan al Hikmah:\n${permalink}`;
 
@@ -754,7 +773,7 @@ export function HadithShareModal({
                 const combinedDataUrl = await combineImagesVertically(dataUrls);
                 const combinedFile = await dataUrlToFile(
                     combinedDataUrl,
-                    `mizan-hadith-${hadith.hadith_num}-${currentTheme.id}.png`,
+                    `mizan-hadith-${hadith.hadith_num}-${currentTheme.id}-${cardStyle}.png`,
                 );
 
                 if (!navigator.canShare || navigator.canShare({ files: [combinedFile] })) {
@@ -805,6 +824,11 @@ export function HadithShareModal({
         setNotice(null);
         setCurrentPageIndex(0);
         setOutputMode(mode);
+    };
+
+    const selectCardStyle = (style: ShareCardStyle) => {
+        setNotice(null);
+        setCardStyle(style);
     };
 
     return (
@@ -888,6 +912,7 @@ export function HadithShareModal({
                                     page={currentPage}
                                     theme={currentTheme}
                                     layout={cardLayout}
+                                    cardStyle={cardStyle}
                                     volume={volume}
                                     chapterTitle={chapterTitle}
                                     hadithNumber={hadith.hadith_num}
@@ -900,6 +925,47 @@ export function HadithShareModal({
                                     Scroll the preview to see the full image.
                                 </p>
                             )}
+
+                            <div
+                                role="radiogroup"
+                                aria-label="Card style"
+                                className="mx-auto mt-4 grid w-full max-w-[540px] grid-cols-2 gap-1 rounded-xl bg-white p-1 shadow-sm dark:bg-slate-900"
+                            >
+                                <button
+                                    type="button"
+                                    role="radio"
+                                    aria-checked={cardStyle === 'classic'}
+                                    onClick={() => selectCardStyle('classic')}
+                                    disabled={isGenerating || isSharing}
+                                    className={`rounded-lg px-2 py-2.5 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:opacity-50 ${
+                                        cardStyle === 'classic'
+                                            ? 'bg-primary-600 text-white'
+                                            : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+                                    }`}
+                                >
+                                    <span className="block text-sm font-semibold">Classic</span>
+                                    <span className={`block text-[11px] ${cardStyle === 'classic' ? 'text-primary-100' : 'text-slate-400'}`}>
+                                        Branded and detailed
+                                    </span>
+                                </button>
+                                <button
+                                    type="button"
+                                    role="radio"
+                                    aria-checked={cardStyle === 'minimal'}
+                                    onClick={() => selectCardStyle('minimal')}
+                                    disabled={isGenerating || isSharing}
+                                    className={`rounded-lg px-2 py-2.5 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:opacity-50 ${
+                                        cardStyle === 'minimal'
+                                            ? 'bg-primary-600 text-white'
+                                            : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+                                    }`}
+                                >
+                                    <span className="block text-sm font-semibold">Minimal</span>
+                                    <span className={`block text-[11px] ${cardStyle === 'minimal' ? 'text-primary-100' : 'text-slate-400'}`}>
+                                        Clean and spacious
+                                    </span>
+                                </button>
+                            </div>
 
                             <div
                                 className="mx-auto mt-4 flex max-w-[540px] items-center gap-2 rounded-xl bg-white p-2.5 shadow-sm dark:bg-slate-900"
@@ -1026,7 +1092,7 @@ export function HadithShareModal({
                         >
                             {pages.map((page, index) => (
                                 <div
-                                    key={`${outputMode}-${page.id}-${currentTheme.id}`}
+                                    key={`${outputMode}-${cardStyle}-${page.id}-${currentTheme.id}`}
                                     style={{
                                         width: EXPORT_CARD_SIZE,
                                         ...(cardLayout === 'square' ? { height: EXPORT_CARD_SIZE } : {}),
@@ -1036,6 +1102,7 @@ export function HadithShareModal({
                                         page={page}
                                         theme={currentTheme}
                                         layout={cardLayout}
+                                        cardStyle={cardStyle}
                                         volume={volume}
                                         chapterTitle={chapterTitle}
                                         hadithNumber={hadith.hadith_num}
