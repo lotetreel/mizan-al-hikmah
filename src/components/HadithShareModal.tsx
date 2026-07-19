@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { toPng } from 'html-to-image';
 import {
     BookOpen,
+    ChevronDown,
     ChevronLeft,
     ChevronRight,
     Download,
@@ -10,6 +11,7 @@ import {
     Loader2,
     Quote,
     Share2,
+    SlidersHorizontal,
     X,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -75,6 +77,8 @@ const MAX_COMBINED_ENGLISH_LENGTH = 150;
 const MAX_COMBINED_WEIGHT = 240;
 const MAX_ARABIC_PAGE_LENGTH = 400;
 const MAX_ENGLISH_PAGE_LENGTH = 520;
+const SHARE_THEME_STORAGE_KEY = 'mizan-share-theme';
+const SHARE_STYLE_STORAGE_KEY = 'mizan-share-style';
 
 const SHARE_THEMES: ShareTheme[] = [
     {
@@ -114,6 +118,38 @@ const SHARE_THEMES: ShareTheme[] = [
         accent: '#cda75a',
     },
 ];
+
+function readStoredThemeIndex(): number {
+    if (typeof window === 'undefined') return 0;
+
+    try {
+        const storedTheme = window.localStorage.getItem(SHARE_THEME_STORAGE_KEY);
+        const storedIndex = SHARE_THEMES.findIndex(theme => theme.id === storedTheme);
+        return storedIndex === -1 ? 0 : storedIndex;
+    } catch {
+        return 0;
+    }
+}
+
+function readStoredCardStyle(): ShareCardStyle {
+    if (typeof window === 'undefined') return 'classic';
+
+    try {
+        return window.localStorage.getItem(SHARE_STYLE_STORAGE_KEY) === 'minimal'
+            ? 'minimal'
+            : 'classic';
+    } catch {
+        return 'classic';
+    }
+}
+
+function storeSharePreference(key: string, value: string) {
+    try {
+        window.localStorage.setItem(key, value);
+    } catch {
+        // Sharing remains usable when storage is unavailable.
+    }
+}
 
 const LOWERCASE_TITLE_WORDS = new Set([
     'a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'from', 'in', 'nor', 'of', 'on', 'or', 'the', 'to',
@@ -680,19 +716,24 @@ export function HadithShareModal({
 }: HadithShareModalProps) {
     const captureRefs = useRef<Array<HTMLDivElement | null>>([]);
     const [currentPageIndex, setCurrentPageIndex] = useState(0);
-    const [currentThemeIndex, setCurrentThemeIndex] = useState(0);
+    const [currentThemeIndex, setCurrentThemeIndex] = useState(readStoredThemeIndex);
     const [outputMode, setOutputMode] = useState<ShareOutputMode>('readable-set');
-    const [cardStyle, setCardStyle] = useState<ShareCardStyle>('classic');
+    const [cardStyle, setCardStyle] = useState<ShareCardStyle>(readStoredCardStyle);
+    const [isCustomizing, setIsCustomizing] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [isSharing, setIsSharing] = useState(false);
     const [notice, setNotice] = useState<string | null>(null);
     const readablePages = useMemo(() => buildSharePages(hadith), [hadith]);
     const bilingualPage = useMemo(() => buildBilingualSharePage(hadith), [hadith]);
-    const pages = outputMode === 'single-bilingual' ? [bilingualPage] : readablePages;
-    const cardLayout: ShareCardLayout = outputMode === 'single-bilingual' ? 'portrait' : 'square';
+    const canChooseOutputMode = readablePages.length > 1 || Boolean(readablePages[0]?.isExcerpt);
+    const activeOutputMode: ShareOutputMode = canChooseOutputMode ? outputMode : 'readable-set';
+    const pages = activeOutputMode === 'single-bilingual' ? [bilingualPage] : readablePages;
+    const cardLayout: ShareCardLayout = activeOutputMode === 'single-bilingual' ? 'portrait' : 'square';
     const currentPage = pages[Math.min(currentPageIndex, pages.length - 1)];
     const currentTheme = SHARE_THEMES[currentThemeIndex];
     const permalink = `${window.location.origin}/volume/${volume}/chapter/${chapterNum}#h-${hadith.hadith_num}`;
+    const formatLabel = activeOutputMode === 'single-bilingual' ? 'Single bilingual' : 'Readable set';
+    const styleLabel = cardStyle === 'minimal' ? 'Minimal' : 'Classic';
 
     const generatePageDataUrls = async () => {
         await document.fonts.ready;
@@ -735,7 +776,7 @@ export function HadithShareModal({
             downloadDataUrls(dataUrls);
             setNotice(dataUrls.length > 1
                 ? `${dataUrls.length} square images downloaded in order.`
-                : outputMode === 'single-bilingual'
+                : activeOutputMode === 'single-bilingual'
                     ? 'Bilingual portrait image downloaded.'
                     : 'Square image downloaded.');
         } catch (error) {
@@ -805,19 +846,10 @@ export function HadithShareModal({
         setCurrentPageIndex(index => Math.min(pages.length - 1, index + 1));
     };
 
-    const goToPreviousTheme = () => {
-        setNotice(null);
-        setCurrentThemeIndex(index => (index - 1 + SHARE_THEMES.length) % SHARE_THEMES.length);
-    };
-
-    const goToNextTheme = () => {
-        setNotice(null);
-        setCurrentThemeIndex(index => (index + 1) % SHARE_THEMES.length);
-    };
-
     const selectTheme = (index: number) => {
         setNotice(null);
         setCurrentThemeIndex(index);
+        storeSharePreference(SHARE_THEME_STORAGE_KEY, SHARE_THEMES[index].id);
     };
 
     const selectOutputMode = (mode: ShareOutputMode) => {
@@ -829,6 +861,12 @@ export function HadithShareModal({
     const selectCardStyle = (style: ShareCardStyle) => {
         setNotice(null);
         setCardStyle(style);
+        storeSharePreference(SHARE_STYLE_STORAGE_KEY, style);
+    };
+
+    const handleClose = () => {
+        setIsCustomizing(false);
+        onClose();
     };
 
     return (
@@ -846,7 +884,7 @@ export function HadithShareModal({
                             <div>
                                 <h3 className="font-serif text-lg font-bold text-slate-950 dark:text-white">Share Hadith</h3>
                                 <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                                    {outputMode === 'single-bilingual'
+                                    {activeOutputMode === 'single-bilingual'
                                         ? 'One bilingual image that grows with the hadith.'
                                         : pages[0]?.isExcerpt
                                         ? 'A concise excerpt image; the full hadith link is included when shared.'
@@ -857,7 +895,7 @@ export function HadithShareModal({
                             </div>
                             <button
                                 type="button"
-                                onClick={onClose}
+                                onClick={handleClose}
                                 aria-label="Close share dialog"
                                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:hover:bg-slate-800 dark:hover:text-white"
                             >
@@ -866,58 +904,42 @@ export function HadithShareModal({
                         </header>
 
                         <div className="min-h-0 flex-1 overflow-y-auto bg-slate-100 px-3 py-4 dark:bg-slate-950 sm:px-8 sm:py-6">
-                            <div
-                                role="radiogroup"
-                                aria-label="Image format"
-                                className="mx-auto mb-4 grid w-full max-w-[540px] grid-cols-2 gap-1 rounded-xl bg-white p-1 shadow-sm dark:bg-slate-900"
-                            >
-                                <button
-                                    type="button"
-                                    role="radio"
-                                    aria-checked={outputMode === 'readable-set'}
-                                    onClick={() => selectOutputMode('readable-set')}
-                                    disabled={isGenerating || isSharing}
-                                    className={`rounded-lg px-2 py-2.5 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:opacity-50 ${
-                                        outputMode === 'readable-set'
-                                            ? 'bg-primary-600 text-white'
-                                            : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
-                                    }`}
-                                >
-                                    <span className="block text-sm font-semibold">Readable set</span>
-                                    <span className={`block text-[11px] ${outputMode === 'readable-set' ? 'text-primary-100' : 'text-slate-400'}`}>
-                                        Square pages
-                                    </span>
-                                </button>
-                                <button
-                                    type="button"
-                                    role="radio"
-                                    aria-checked={outputMode === 'single-bilingual'}
-                                    onClick={() => selectOutputMode('single-bilingual')}
-                                    disabled={isGenerating || isSharing}
-                                    className={`rounded-lg px-2 py-2.5 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:opacity-50 ${
-                                        outputMode === 'single-bilingual'
-                                            ? 'bg-primary-600 text-white'
-                                            : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
-                                    }`}
-                                >
-                                    <span className="block text-sm font-semibold">Single bilingual</span>
-                                    <span className={`block text-[11px] ${outputMode === 'single-bilingual' ? 'text-primary-100' : 'text-slate-400'}`}>
-                                        One portrait image
-                                    </span>
-                                </button>
-                            </div>
+                            <div className="relative mx-auto w-full max-w-[540px]">
+                                <div className={`w-full rounded-md shadow-xl shadow-slate-900/10 ${cardLayout === 'portrait' ? 'max-h-[65vh] overflow-y-auto' : 'overflow-hidden'}`}>
+                                    <ShareCard
+                                        page={currentPage}
+                                        theme={currentTheme}
+                                        layout={cardLayout}
+                                        cardStyle={cardStyle}
+                                        volume={volume}
+                                        chapterTitle={chapterTitle}
+                                        hadithNumber={hadith.hadith_num}
+                                        testId="share-preview-card"
+                                    />
+                                </div>
 
-                            <div className={`mx-auto w-full max-w-[540px] rounded-md shadow-xl shadow-slate-900/10 ${cardLayout === 'portrait' ? 'max-h-[65vh] overflow-y-auto' : 'overflow-hidden'}`}>
-                                <ShareCard
-                                    page={currentPage}
-                                    theme={currentTheme}
-                                    layout={cardLayout}
-                                    cardStyle={cardStyle}
-                                    volume={volume}
-                                    chapterTitle={chapterTitle}
-                                    hadithNumber={hadith.hadith_num}
-                                    testId="share-preview-card"
-                                />
+                                {pages.length > 1 && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={goToPreviousPage}
+                                            disabled={currentPageIndex === 0}
+                                            aria-label="Preview previous image"
+                                            className="absolute left-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-slate-950/65 text-white shadow-lg backdrop-blur-sm transition hover:bg-slate-950/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-25"
+                                        >
+                                            <ChevronLeft size={21} />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={goToNextPage}
+                                            disabled={currentPageIndex === pages.length - 1}
+                                            aria-label="Preview next image"
+                                            className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-slate-950/65 text-white shadow-lg backdrop-blur-sm transition hover:bg-slate-950/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-25"
+                                        >
+                                            <ChevronRight size={21} />
+                                        </button>
+                                    </>
+                                )}
                             </div>
 
                             {cardLayout === 'portrait' && (
@@ -926,137 +948,140 @@ export function HadithShareModal({
                                 </p>
                             )}
 
-                            <div
-                                role="radiogroup"
-                                aria-label="Card style"
-                                className="mx-auto mt-4 grid w-full max-w-[540px] grid-cols-2 gap-1 rounded-xl bg-white p-1 shadow-sm dark:bg-slate-900"
-                            >
+                            <div className="mx-auto mt-4 w-full max-w-[540px] overflow-hidden rounded-xl bg-white shadow-sm dark:bg-slate-900">
                                 <button
                                     type="button"
-                                    role="radio"
-                                    aria-checked={cardStyle === 'classic'}
-                                    onClick={() => selectCardStyle('classic')}
+                                    onClick={() => setIsCustomizing(open => !open)}
                                     disabled={isGenerating || isSharing}
-                                    className={`rounded-lg px-2 py-2.5 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:opacity-50 ${
-                                        cardStyle === 'classic'
-                                            ? 'bg-primary-600 text-white'
-                                            : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
-                                    }`}
+                                    aria-expanded={isCustomizing}
+                                    aria-controls="share-customization-options"
+                                    className="flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500 disabled:opacity-50 dark:hover:bg-slate-800"
                                 >
-                                    <span className="block text-sm font-semibold">Classic</span>
-                                    <span className={`block text-[11px] ${cardStyle === 'classic' ? 'text-primary-100' : 'text-slate-400'}`}>
-                                        Branded and detailed
+                                    <SlidersHorizontal className="h-5 w-5 shrink-0 text-primary-600 dark:text-primary-400" aria-hidden="true" />
+                                    <span className="min-w-0 flex-1">
+                                        <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100">Customise</span>
+                                        <span className="block truncate text-xs text-slate-500 dark:text-slate-400">
+                                            {formatLabel} · {styleLabel} · {currentTheme.name}
+                                        </span>
                                     </span>
+                                    <ChevronDown
+                                        className={`h-5 w-5 shrink-0 text-slate-400 transition-transform ${isCustomizing ? 'rotate-180' : ''}`}
+                                        aria-hidden="true"
+                                    />
                                 </button>
-                                <button
-                                    type="button"
-                                    role="radio"
-                                    aria-checked={cardStyle === 'minimal'}
-                                    onClick={() => selectCardStyle('minimal')}
-                                    disabled={isGenerating || isSharing}
-                                    className={`rounded-lg px-2 py-2.5 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:opacity-50 ${
-                                        cardStyle === 'minimal'
-                                            ? 'bg-primary-600 text-white'
-                                            : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
-                                    }`}
-                                >
-                                    <span className="block text-sm font-semibold">Minimal</span>
-                                    <span className={`block text-[11px] ${cardStyle === 'minimal' ? 'text-primary-100' : 'text-slate-400'}`}>
-                                        Clean and spacious
-                                    </span>
-                                </button>
+
+                                <AnimatePresence initial={false}>
+                                    {isCustomizing && (
+                                        <motion.div
+                                            id="share-customization-options"
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: 'auto', opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            transition={{ duration: 0.2, ease: 'easeOut' }}
+                                            className="overflow-hidden"
+                                        >
+                                            <div className="space-y-5 border-t border-slate-200 px-4 pb-4 pt-4 dark:border-slate-800">
+                                                {canChooseOutputMode && (
+                                                    <div>
+                                                        <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500">
+                                                            Image format
+                                                        </p>
+                                                        <div role="radiogroup" aria-label="Image format" className="grid grid-cols-2 gap-2">
+                                                            <button
+                                                                type="button"
+                                                                role="radio"
+                                                                aria-checked={activeOutputMode === 'readable-set'}
+                                                                onClick={() => selectOutputMode('readable-set')}
+                                                                disabled={isGenerating || isSharing}
+                                                                className={`rounded-lg border px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:opacity-50 ${
+                                                                    activeOutputMode === 'readable-set'
+                                                                        ? 'border-primary-600 bg-primary-50 text-primary-700 dark:bg-primary-950/40 dark:text-primary-200'
+                                                                        : 'border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800'
+                                                                }`}
+                                                            >
+                                                                Readable set
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                role="radio"
+                                                                aria-checked={activeOutputMode === 'single-bilingual'}
+                                                                onClick={() => selectOutputMode('single-bilingual')}
+                                                                disabled={isGenerating || isSharing}
+                                                                className={`rounded-lg border px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:opacity-50 ${
+                                                                    activeOutputMode === 'single-bilingual'
+                                                                        ? 'border-primary-600 bg-primary-50 text-primary-700 dark:bg-primary-950/40 dark:text-primary-200'
+                                                                        : 'border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800'
+                                                                }`}
+                                                            >
+                                                                Single bilingual
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                <div>
+                                                    <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500">
+                                                        Card style
+                                                    </p>
+                                                    <div role="radiogroup" aria-label="Card style" className="grid grid-cols-2 gap-2">
+                                                        {(['classic', 'minimal'] as const).map(style => (
+                                                            <button
+                                                                key={style}
+                                                                type="button"
+                                                                role="radio"
+                                                                aria-checked={cardStyle === style}
+                                                                onClick={() => selectCardStyle(style)}
+                                                                disabled={isGenerating || isSharing}
+                                                                className={`rounded-lg border px-3 py-2 text-sm font-semibold capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:opacity-50 ${
+                                                                    cardStyle === style
+                                                                        ? 'border-primary-600 bg-primary-50 text-primary-700 dark:bg-primary-950/40 dark:text-primary-200'
+                                                                        : 'border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800'
+                                                                }`}
+                                                            >
+                                                                {style}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500">
+                                                        Card colour
+                                                    </p>
+                                                    <div
+                                                        role="radiogroup"
+                                                        aria-label="Choose a card colour"
+                                                        className="grid grid-cols-4 gap-2"
+                                                    >
+                                                        {SHARE_THEMES.map((theme, index) => (
+                                                            <button
+                                                                key={theme.id}
+                                                                type="button"
+                                                                role="radio"
+                                                                aria-checked={index === currentThemeIndex}
+                                                                onClick={() => selectTheme(index)}
+                                                                disabled={isGenerating || isSharing}
+                                                                className={`flex min-w-0 flex-col items-center gap-1.5 rounded-lg border px-1 py-2 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:opacity-50 ${
+                                                                    index === currentThemeIndex
+                                                                        ? 'border-primary-600 text-primary-700 dark:text-primary-200'
+                                                                        : 'border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800'
+                                                                }`}
+                                                            >
+                                                                <span
+                                                                    className="h-6 w-6 rounded-full border border-slate-300 shadow-sm dark:border-slate-600"
+                                                                    style={{ backgroundColor: theme.background }}
+                                                                    aria-hidden="true"
+                                                                />
+                                                                <span className="truncate">{theme.name}</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                             </div>
-
-                            <div
-                                className="mx-auto mt-4 flex max-w-[540px] items-center gap-2 rounded-xl bg-white p-2.5 shadow-sm dark:bg-slate-900"
-                                aria-label="Card colour selector"
-                            >
-                                <button
-                                    type="button"
-                                    onClick={goToPreviousTheme}
-                                    disabled={isGenerating || isSharing}
-                                    aria-label="Previous card colour"
-                                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 hover:text-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:opacity-40 dark:text-slate-300 dark:hover:bg-slate-800"
-                                >
-                                    <ChevronLeft size={20} />
-                                </button>
-
-                                <div className="min-w-0 flex-1 text-center">
-                                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500">
-                                        Card colour
-                                    </p>
-                                    <p
-                                        className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100"
-                                        aria-live="polite"
-                                    >
-                                        {currentTheme.name}
-                                    </p>
-                                    <div
-                                        role="radiogroup"
-                                        aria-label="Choose a card colour"
-                                        className="mt-1.5 flex items-center justify-center gap-2"
-                                    >
-                                        {SHARE_THEMES.map((theme, index) => (
-                                            <button
-                                                key={theme.id}
-                                                type="button"
-                                                role="radio"
-                                                aria-checked={index === currentThemeIndex}
-                                                aria-label={theme.name}
-                                                onClick={() => selectTheme(index)}
-                                                disabled={isGenerating || isSharing}
-                                                className={`h-5 w-5 rounded-full border transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 disabled:opacity-40 ${
-                                                    index === currentThemeIndex
-                                                        ? 'scale-110 border-white ring-2 ring-primary-500 ring-offset-2 dark:ring-offset-slate-900'
-                                                        : 'border-slate-300 dark:border-slate-600'
-                                                }`}
-                                                style={{ backgroundColor: theme.background }}
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <button
-                                    type="button"
-                                    onClick={goToNextTheme}
-                                    disabled={isGenerating || isSharing}
-                                    aria-label="Next card colour"
-                                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 hover:text-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:opacity-40 dark:text-slate-300 dark:hover:bg-slate-800"
-                                >
-                                    <ChevronRight size={20} />
-                                </button>
-                            </div>
-
-                            {pages.length > 1 && (
-                                <div className="mx-auto mt-4 flex max-w-[540px] items-center justify-between">
-                                    <button
-                                        type="button"
-                                        onClick={goToPreviousPage}
-                                        disabled={currentPageIndex === 0}
-                                        aria-label="Preview previous image"
-                                        className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-700 shadow-sm transition hover:text-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-35 dark:bg-slate-900 dark:text-slate-200"
-                                    >
-                                        <ChevronLeft size={20} />
-                                    </button>
-                                    <div className="text-center">
-                                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                                            Image {currentPageIndex + 1} of {pages.length}
-                                        </p>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                                            {currentPage.kind === 'arabic' ? 'Arabic' : currentPage.kind === 'english' ? 'English' : 'Arabic and English'}
-                                        </p>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={goToNextPage}
-                                        disabled={currentPageIndex === pages.length - 1}
-                                        aria-label="Preview next image"
-                                        className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-700 shadow-sm transition hover:text-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-35 dark:bg-slate-900 dark:text-slate-200"
-                                    >
-                                        <ChevronRight size={20} />
-                                    </button>
-                                </div>
-                            )}
 
                             {notice && (
                                 <p className="mx-auto mt-4 max-w-[540px] rounded-lg bg-primary-50 px-3 py-2 text-center text-sm text-primary-800 dark:bg-primary-900/30 dark:text-primary-200">
@@ -1065,15 +1090,16 @@ export function HadithShareModal({
                             )}
                         </div>
 
-                        <footer className="flex flex-col-reverse gap-2 border-t border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:justify-end sm:p-4">
+                        <footer className="flex flex-col-reverse gap-1 border-t border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-end sm:gap-2 sm:p-4">
                             <button
                                 type="button"
                                 onClick={handleDownload}
                                 disabled={isGenerating || isSharing}
-                                className="flex min-h-11 items-center justify-center gap-2 rounded-lg bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:opacity-50 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                                aria-label={`Download ${pages.length > 1 ? `${pages.length} images` : 'image'}`}
+                                className="flex min-h-10 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:opacity-50 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
                             >
                                 {isGenerating ? <Loader2 size={17} className="animate-spin" /> : <Download size={17} />}
-                                Download {pages.length > 1 ? `${pages.length} images` : 'image'}
+                                Download
                             </button>
                             <button
                                 type="button"
@@ -1092,7 +1118,7 @@ export function HadithShareModal({
                         >
                             {pages.map((page, index) => (
                                 <div
-                                    key={`${outputMode}-${cardStyle}-${page.id}-${currentTheme.id}`}
+                                    key={`${activeOutputMode}-${cardStyle}-${page.id}-${currentTheme.id}`}
                                     style={{
                                         width: EXPORT_CARD_SIZE,
                                         ...(cardLayout === 'square' ? { height: EXPORT_CARD_SIZE } : {}),
