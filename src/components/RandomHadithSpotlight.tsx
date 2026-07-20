@@ -263,16 +263,22 @@ export function RandomHadithSpotlight() {
                                 aria-live="polite"
                             >
                                 <div className="h-0.5 w-14 bg-gold-500 dark:bg-gold-300" />
-                                <p
-                                    dir="rtl"
-                                    lang="ar"
-                                    className="max-w-3xl text-right font-arabic text-3xl leading-[1.85] text-slate-900 dark:text-slate-100 sm:text-4xl lg:text-[2.65rem]"
+                                <Link
+                                    to={`/volume/${selection.volume}/chapter/${selection.chapter.chapter_num}#h-${selection.hadith.hadith_num}`}
+                                    aria-label={`Read Hadith ${selection.hadith.hadith_num}`}
+                                    className="group -m-3 block max-w-3xl space-y-7 rounded-2xl p-3 transition-colors hover:bg-primary-50/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-4 focus-visible:ring-offset-slate-50 dark:hover:bg-primary-950/30 dark:focus-visible:ring-offset-slate-950"
                                 >
-                                    {withoutHadithNumber(selection.hadith.arabic)}
-                                </p>
-                                <p className="max-w-3xl font-serif text-2xl leading-snug text-slate-900 dark:text-white sm:text-3xl lg:text-[2rem]">
-                                    {englishHadith?.text}
-                                </p>
+                                    <p
+                                        dir="rtl"
+                                        lang="ar"
+                                        className="text-right font-arabic text-3xl leading-[1.85] text-slate-900 transition-colors group-hover:text-primary-800 dark:text-slate-100 dark:group-hover:text-primary-200 sm:text-4xl lg:text-[2.65rem]"
+                                    >
+                                        {withoutHadithNumber(selection.hadith.arabic)}
+                                    </p>
+                                    <p className="font-serif text-2xl leading-snug text-slate-900 transition-colors group-hover:text-primary-800 dark:text-white dark:group-hover:text-primary-200 sm:text-3xl lg:text-[2rem]">
+                                        {englishHadith?.text}
+                                    </p>
+                                </Link>
 
                                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-500 dark:text-slate-400 sm:text-base">
                                     <span>{englishHadith?.attribution ?? `Volume ${selection.volume}`}</span>
