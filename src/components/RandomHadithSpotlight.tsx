@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, BookOpen, Quote, RefreshCw } from 'lucide-react';
+import { ArrowRight, BookOpen, Heart, Image as ImageIcon, Quote, RefreshCw } from 'lucide-react';
 import { loadVolume } from '../lib/data';
 import type { Chapter, Hadith, Section, VolumeData } from '../lib/types';
+import { HadithShareModal } from './HadithShareModal';
+import { useFavorites } from '../contexts/FavoritesContext';
 
 const VOLUMES = [1, 2, 3, 4];
 const MIN_ARABIC_LENGTH = 50;
@@ -169,8 +171,10 @@ export function RandomHadithSpotlight() {
     const [selection, setSelection] = useState<HadithSelection | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
     const currentKeyRef = useRef<string | undefined>(undefined);
     const requestIdRef = useRef(0);
+    const { isFavorite, toggleFavorite } = useFavorites();
 
     const showAnotherHadith = useCallback(async () => {
         const requestId = ++requestIdRef.current;
@@ -216,6 +220,24 @@ export function RandomHadithSpotlight() {
     }, []);
 
     const englishHadith = selection ? parseEnglishHadith(selection.hadith.english) : null;
+    const favorited = selection
+        ? isFavorite(selection.volume, selection.hadith.hadith_num)
+        : false;
+
+    const handleToggleFavorite = () => {
+        if (!selection) return;
+
+        toggleFavorite({
+            volume: selection.volume,
+            chapterNum: selection.chapter.chapter_num,
+            chapterTitleEn: selection.chapter.chapter_title_en,
+            chapterTitleAr: selection.chapter.chapter_title_ar,
+            sectionNum: selection.section.section_num,
+            sectionTitleEn: selection.section.section_title_en,
+            sectionTitleAr: selection.section.section_title_ar,
+            hadith: selection.hadith,
+        });
+    };
 
     return (
         <section className="space-y-7" aria-labelledby="random-hadith-heading">
@@ -296,15 +318,64 @@ export function RandomHadithSpotlight() {
                                         Read this section
                                         <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
                                     </Link>
-                                    <button
-                                        type="button"
-                                        onClick={showAnotherHadith}
-                                        disabled={loading}
-                                        className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition-colors hover:text-primary-600 disabled:cursor-wait disabled:opacity-60 dark:text-slate-400 dark:hover:text-primary-400"
+
+                                    <div
+                                        role="group"
+                                        aria-label="Hadith actions"
+                                        className="flex items-center gap-1.5 rounded-2xl border border-slate-200/80 bg-white/90 p-1.5 shadow-sm shadow-slate-200/50 backdrop-blur dark:border-slate-700/80 dark:bg-slate-900/90 dark:shadow-none"
                                     >
-                                        <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-                                        {loading ? 'Finding another hadith…' : 'Show another hadith'}
-                                    </button>
+                                        <button
+                                            type="button"
+                                            onClick={showAnotherHadith}
+                                            disabled={loading}
+                                            aria-label={loading ? 'Finding another hadith' : 'Show another hadith'}
+                                            title={loading ? 'Finding another hadith…' : 'Show another hadith'}
+                                            className="group inline-flex h-11 w-11 items-center justify-center rounded-xl bg-primary-600 text-white shadow-sm shadow-primary-600/20 transition-all hover:-translate-y-0.5 hover:bg-primary-700 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0 dark:bg-primary-500 dark:hover:bg-primary-400"
+                                        >
+                                            <RefreshCw
+                                                size={20}
+                                                strokeWidth={2.25}
+                                                className={loading ? 'animate-spin' : 'transition-transform group-hover:rotate-45'}
+                                            />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleToggleFavorite}
+                                            aria-pressed={favorited}
+                                            aria-label={favorited ? 'Remove from favorites' : 'Add to favorites'}
+                                            title={favorited ? 'Remove from favorites' : 'Add to favorites'}
+                                            className={`inline-flex h-11 w-11 items-center justify-center rounded-xl transition-all hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:ring-offset-2 ${
+                                                favorited
+                                                    ? 'bg-rose-50 text-rose-500 shadow-sm shadow-rose-200/60 dark:bg-rose-950/50 dark:text-rose-300 dark:shadow-none'
+                                                    : 'text-slate-500 hover:bg-rose-50 hover:text-rose-500 dark:text-slate-400 dark:hover:bg-rose-950/40 dark:hover:text-rose-300'
+                                            }`}
+                                        >
+                                            <motion.span
+                                                key={favorited ? 'favorited' : 'not-favorited'}
+                                                initial={{ scale: favorited ? 0.65 : 1 }}
+                                                animate={{ scale: 1 }}
+                                                transition={{ type: 'spring', stiffness: 500, damping: 24 }}
+                                                className="inline-flex"
+                                            >
+                                                <Heart
+                                                    size={20}
+                                                    strokeWidth={2.25}
+                                                    fill={favorited ? 'currentColor' : 'none'}
+                                                />
+                                            </motion.span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsShareModalOpen(true)}
+                                            aria-label="Generate a shareable image"
+                                            aria-haspopup="dialog"
+                                            aria-expanded={isShareModalOpen}
+                                            title="Generate a shareable image"
+                                            className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-slate-500 transition-all hover:-translate-y-0.5 hover:bg-gold-50 hover:text-gold-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:ring-offset-2 dark:text-slate-400 dark:hover:bg-gold-950/40 dark:hover:text-gold-300"
+                                        >
+                                            <ImageIcon size={20} strokeWidth={2.25} />
+                                        </button>
+                                    </div>
                                 </div>
                             </motion.div>
                         </AnimatePresence>
@@ -341,6 +412,16 @@ export function RandomHadithSpotlight() {
                         </div>
                     </aside>
                 </div>
+            )}
+            {selection && (
+                <HadithShareModal
+                    isOpen={isShareModalOpen}
+                    onClose={() => setIsShareModalOpen(false)}
+                    hadith={selection.hadith}
+                    volume={selection.volume}
+                    chapterNum={selection.chapter.chapter_num}
+                    chapterTitle={selection.chapter.chapter_title_en}
+                />
             )}
         </section>
     );
