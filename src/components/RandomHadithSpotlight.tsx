@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ArrowRight, BookOpen, Heart, Image as ImageIcon, Quote, RefreshCw } from 'lucide-react';
 import { loadVolume } from '../lib/data';
 import type { Chapter, Hadith, Section, VolumeData } from '../lib/types';
@@ -172,6 +172,7 @@ export function RandomHadithSpotlight() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+    const prefersReducedMotion = useReducedMotion();
     const currentKeyRef = useRef<string | undefined>(undefined);
     const requestIdRef = useRef(0);
     const { isFavorite, toggleFavorite } = useFavorites();
@@ -316,7 +317,32 @@ export function RandomHadithSpotlight() {
                                         className="group inline-flex items-center gap-3 font-semibold text-primary-600 transition-colors hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
                                     >
                                         Read this section
-                                        <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
+                                        <span
+                                            aria-hidden="true"
+                                            className="inline-flex transition-transform duration-200 group-hover:translate-x-1"
+                                        >
+                                            <motion.span
+                                                className="inline-flex origin-center"
+                                                animate={
+                                                    prefersReducedMotion
+                                                        ? undefined
+                                                        : {
+                                                            rotate: [0, 0, 90, 90, 0],
+                                                            y: [0, 0, 2, 2, 0],
+                                                        }
+                                                }
+                                                transition={{
+                                                    delay: 3.5,
+                                                    duration: 2.2,
+                                                    times: [0, 0.56, 0.68, 0.81, 1],
+                                                    ease: 'easeInOut',
+                                                    repeat: Infinity,
+                                                    repeatDelay: 5.8,
+                                                }}
+                                            >
+                                                <ArrowRight size={18} />
+                                            </motion.span>
+                                        </span>
                                     </Link>
 
                                     <div
