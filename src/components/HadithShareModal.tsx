@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { toPng } from 'html-to-image';
 import {
@@ -30,6 +30,9 @@ type SharePageKind = 'combined' | 'arabic' | 'english';
 type ShareOutputMode = 'readable-set' | 'single-bilingual';
 type ShareCardLayout = 'square' | 'portrait';
 type ShareCardStyle = 'classic' | 'minimal';
+type ShareArabicFont = 'amiri' | 'noto-naskh' | 'scheherazade';
+type ShareEnglishFont = 'playfair' | 'lora' | 'inter';
+type ShareTextSize = 'smaller' | 'auto' | 'larger';
 
 interface ParsedHadithText {
     attribution: string | null;
@@ -53,11 +56,26 @@ interface ShareCardProps {
     theme: ShareTheme;
     layout: ShareCardLayout;
     cardStyle: ShareCardStyle;
+    typography: ShareTypography;
     volume: number;
     chapterTitle?: string;
     hadithNumber: number;
     captureRef?: (element: HTMLDivElement | null) => void;
     testId?: string;
+}
+
+interface ShareTypography {
+    arabicFont: ShareArabicFont;
+    englishFont: ShareEnglishFont;
+    arabicSize: ShareTextSize;
+    englishSize: ShareTextSize;
+}
+
+interface ShareFontOption<T extends string> {
+    id: T;
+    name: string;
+    shortName: string;
+    fontFamily: string;
 }
 
 interface ShareTheme {
@@ -79,6 +97,62 @@ const MAX_ARABIC_PAGE_LENGTH = 400;
 const MAX_ENGLISH_PAGE_LENGTH = 520;
 const SHARE_THEME_STORAGE_KEY = 'mizan-share-theme';
 const SHARE_STYLE_STORAGE_KEY = 'mizan-share-style';
+const SHARE_ARABIC_FONT_STORAGE_KEY = 'mizan-share-arabic-font';
+const SHARE_ENGLISH_FONT_STORAGE_KEY = 'mizan-share-english-font';
+
+const ARABIC_FONT_OPTIONS: readonly ShareFontOption<ShareArabicFont>[] = [
+    {
+        id: 'amiri',
+        name: 'Amiri',
+        shortName: 'Amiri',
+        fontFamily: "'Amiri', serif",
+    },
+    {
+        id: 'noto-naskh',
+        name: 'Noto Naskh Arabic',
+        shortName: 'Naskh',
+        fontFamily: "'Noto Naskh Arabic', serif",
+    },
+    {
+        id: 'scheherazade',
+        name: 'Scheherazade New',
+        shortName: 'Scheherazade',
+        fontFamily: "'Scheherazade New', serif",
+    },
+];
+
+const ENGLISH_FONT_OPTIONS: readonly ShareFontOption<ShareEnglishFont>[] = [
+    {
+        id: 'playfair',
+        name: 'Playfair Display',
+        shortName: 'Playfair',
+        fontFamily: "'Playfair Display', serif",
+    },
+    {
+        id: 'lora',
+        name: 'Lora',
+        shortName: 'Lora',
+        fontFamily: "'Lora', serif",
+    },
+    {
+        id: 'inter',
+        name: 'Inter',
+        shortName: 'Inter',
+        fontFamily: "'Inter', sans-serif",
+    },
+];
+
+const SHARE_TEXT_SIZE_OPTIONS: readonly { id: ShareTextSize; label: string }[] = [
+    { id: 'smaller', label: 'Smaller' },
+    { id: 'auto', label: 'Auto' },
+    { id: 'larger', label: 'Larger' },
+];
+
+const SHARE_TEXT_SIZE_SCALE: Record<ShareTextSize, number> = {
+    smaller: 0.9,
+    auto: 1,
+    larger: 1.1,
+};
 
 const SHARE_THEMES: ShareTheme[] = [
     {
@@ -140,6 +214,23 @@ function readStoredCardStyle(): ShareCardStyle {
             : 'classic';
     } catch {
         return 'classic';
+    }
+}
+
+function readStoredFont<T extends string>(
+    key: string,
+    options: readonly ShareFontOption<T>[],
+    fallback: T,
+): T {
+    if (typeof window === 'undefined') return fallback;
+
+    try {
+        const storedFont = window.localStorage.getItem(key);
+        return options.some(option => option.id === storedFont)
+            ? storedFont as T
+            : fallback;
+    } catch {
+        return fallback;
     }
 }
 
@@ -377,6 +468,34 @@ function englishFontSize(page: SharePage): string {
     return '3.2cqw';
 }
 
+function scaledFontSize(baseSize: string, size: ShareTextSize): string {
+    const scale = SHARE_TEXT_SIZE_SCALE[size];
+    return scale === 1 ? baseSize : `calc(${baseSize} * ${scale})`;
+}
+
+function largerSizeIsSafe(
+    page: SharePage,
+    language: 'arabic' | 'english',
+    layout: ShareCardLayout,
+): boolean {
+    if (layout === 'portrait') return true;
+
+    const arabicLength = page.arabic?.length ?? 0;
+    const englishLength = page.english?.length ?? 0;
+    if (language === 'arabic' && !arabicLength) return true;
+    if (language === 'english' && !englishLength) return true;
+
+    if (page.kind === 'combined') {
+        return arabicLength <= 90
+            && englishLength <= 125
+            && arabicLength + englishLength <= 205;
+    }
+
+    return language === 'arabic'
+        ? arabicLength <= 260
+        : englishLength <= 360;
+}
+
 function ShareDivider({ theme }: { theme: ShareTheme }) {
     return (
         <div
@@ -475,6 +594,7 @@ function ShareCard({
     theme,
     layout,
     cardStyle,
+    typography,
     volume,
     chapterTitle,
     hadithNumber,
@@ -485,6 +605,10 @@ function ShareCard({
     const isCombined = page.kind === 'combined';
     const isPortrait = layout === 'portrait';
     const isMinimal = cardStyle === 'minimal';
+    const arabicFont = ARABIC_FONT_OPTIONS.find(option => option.id === typography.arabicFont)
+        ?? ARABIC_FONT_OPTIONS[0];
+    const englishFont = ENGLISH_FONT_OPTIONS.find(option => option.id === typography.englishFont)
+        ?? ENGLISH_FONT_OPTIONS[0];
     const sourceFontSize = isMinimal ? '1.8cqw' : title.length > 28 ? '1.9cqw' : '2.45cqw';
     const spacingClass = page.isExcerpt
         ? isMinimal ? 'gap-[2.8cqw]' : 'gap-[1.6cqw]'
@@ -499,7 +623,8 @@ function ShareCard({
                         className="font-arabic"
                         dir="rtl"
                         style={{
-                            fontSize: arabicFontSize(page),
+                            fontFamily: arabicFont.fontFamily,
+                            fontSize: scaledFontSize(arabicFontSize(page), typography.arabicSize),
                             lineHeight: page.kind === 'combined' ? 1.58 : 1.62,
                             color: theme.primaryText,
                         }}
@@ -511,7 +636,11 @@ function ShareCard({
                             className="mt-[2.3cqw] font-arabic"
                             dir="rtl"
                             style={{
-                                fontSize: page.isExcerpt ? '2.55cqw' : isCombined ? '3.7cqw' : '3.65cqw',
+                                fontFamily: arabicFont.fontFamily,
+                                fontSize: scaledFontSize(
+                                    page.isExcerpt ? '2.55cqw' : isCombined ? '3.7cqw' : '3.65cqw',
+                                    typography.arabicSize,
+                                ),
                                 lineHeight: 1.45,
                                 color: theme.secondaryText,
                             }}
@@ -527,9 +656,9 @@ function ShareCard({
             {page.english && (
                 <div className="w-full">
                     <p
-                        className="font-serif"
                         style={{
-                            fontSize: englishFontSize(page),
+                            fontFamily: englishFont.fontFamily,
+                            fontSize: scaledFontSize(englishFontSize(page), typography.englishSize),
                             lineHeight: 1.28,
                             color: theme.primaryText,
                         }}
@@ -619,7 +748,7 @@ function ShareCard({
                     </main>
                 ) : (
                     <FittedShareContent
-                        fitKey={`${page.id}-${theme.id}-${layout}-${cardStyle}-${page.arabic?.length ?? 0}-${page.english?.length ?? 0}`}
+                        fitKey={`${page.id}-${theme.id}-${layout}-${cardStyle}-${typography.arabicFont}-${typography.englishFont}-${typography.arabicSize}-${typography.englishSize}-${page.arabic?.length ?? 0}-${page.english?.length ?? 0}`}
                         spacingClass={spacingClass}
                     >
                         {shareContent}
@@ -656,6 +785,86 @@ function ShareCard({
                         <span>mizan-al-hikmah.web.app</span>
                     </div>
                 </footer>
+            </div>
+        </div>
+    );
+}
+
+function TypographyLanguageControls<T extends string>({
+    language,
+    description,
+    font,
+    fontOptions,
+    size,
+    canUseLarger,
+    disabled,
+    onFontChange,
+    onSizeChange,
+}: {
+    language: string;
+    description: string;
+    font: T;
+    fontOptions: readonly ShareFontOption<T>[];
+    size: ShareTextSize;
+    canUseLarger: boolean;
+    disabled: boolean;
+    onFontChange: (font: T) => void;
+    onSizeChange: (size: ShareTextSize) => void;
+}) {
+    const selectedFont = fontOptions.find(option => option.id === font) ?? fontOptions[0];
+
+    return (
+        <div className="rounded-lg bg-slate-50 p-3 dark:bg-slate-950/55">
+            <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{language}</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">{description}</p>
+                </div>
+                <select
+                    value={font}
+                    onChange={event => onFontChange(event.target.value as T)}
+                    disabled={disabled}
+                    aria-label={`Choose ${language} font`}
+                    className="min-h-10 max-w-[55%] rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm text-slate-700 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                    style={{ fontFamily: selectedFont.fontFamily }}
+                >
+                    {fontOptions.map(option => (
+                        <option key={option.id} value={option.id}>{option.name}</option>
+                    ))}
+                </select>
+            </div>
+
+            <div
+                role="radiogroup"
+                aria-label={`${language} text size`}
+                className="mt-2 grid grid-cols-3 gap-1 rounded-lg bg-slate-200/70 p-1 dark:bg-slate-800"
+            >
+                {SHARE_TEXT_SIZE_OPTIONS.map(option => {
+                    const isSelected = size === option.id;
+                    const isUnavailable = option.id === 'larger' && !canUseLarger;
+
+                    return (
+                        <button
+                            key={option.id}
+                            type="button"
+                            role="radio"
+                            aria-checked={isSelected}
+                            aria-disabled={isUnavailable}
+                            disabled={disabled || isUnavailable}
+                            onClick={() => onSizeChange(option.id)}
+                            title={isUnavailable
+                                ? 'Larger is unavailable because one of the images would need to shrink to fit.'
+                                : undefined}
+                            className={`min-h-9 rounded-md px-2 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:cursor-not-allowed ${
+                                isSelected
+                                    ? 'bg-white text-primary-700 shadow-sm dark:bg-slate-700 dark:text-primary-200'
+                                    : 'text-slate-500 hover:text-slate-800 disabled:opacity-40 dark:text-slate-400 dark:hover:text-slate-100'
+                            }`}
+                        >
+                            {option.label}
+                        </button>
+                    );
+                })}
             </div>
         </div>
     );
@@ -720,6 +929,15 @@ export function HadithShareModal({
     const [outputMode, setOutputMode] = useState<ShareOutputMode>('readable-set');
     const [cardStyle, setCardStyle] = useState<ShareCardStyle>(readStoredCardStyle);
     const [isCustomizing, setIsCustomizing] = useState(false);
+    const [isTypographyOpen, setIsTypographyOpen] = useState(false);
+    const [arabicFont, setArabicFont] = useState<ShareArabicFont>(() => (
+        readStoredFont(SHARE_ARABIC_FONT_STORAGE_KEY, ARABIC_FONT_OPTIONS, 'amiri')
+    ));
+    const [englishFont, setEnglishFont] = useState<ShareEnglishFont>(() => (
+        readStoredFont(SHARE_ENGLISH_FONT_STORAGE_KEY, ENGLISH_FONT_OPTIONS, 'playfair')
+    ));
+    const [arabicSize, setArabicSize] = useState<ShareTextSize>('auto');
+    const [englishSize, setEnglishSize] = useState<ShareTextSize>('auto');
     const [isGenerating, setIsGenerating] = useState(false);
     const [isSharing, setIsSharing] = useState(false);
     const [notice, setNotice] = useState<string | null>(null);
@@ -731,9 +949,40 @@ export function HadithShareModal({
     const cardLayout: ShareCardLayout = activeOutputMode === 'single-bilingual' ? 'portrait' : 'square';
     const currentPage = pages[Math.min(currentPageIndex, pages.length - 1)];
     const currentTheme = SHARE_THEMES[currentThemeIndex];
+    const typography: ShareTypography = {
+        arabicFont,
+        englishFont,
+        arabicSize,
+        englishSize,
+    };
+    const canUseArabicLarger = pages.every(page => largerSizeIsSafe(page, 'arabic', cardLayout));
+    const canUseEnglishLarger = pages.every(page => largerSizeIsSafe(page, 'english', cardLayout));
+    const selectedArabicFont = ARABIC_FONT_OPTIONS.find(option => option.id === arabicFont)
+        ?? ARABIC_FONT_OPTIONS[0];
+    const selectedEnglishFont = ENGLISH_FONT_OPTIONS.find(option => option.id === englishFont)
+        ?? ENGLISH_FONT_OPTIONS[0];
+    const typographySizeSummary = arabicSize === englishSize
+        ? SHARE_TEXT_SIZE_OPTIONS.find(option => option.id === arabicSize)?.label ?? 'Auto'
+        : 'Mixed sizes';
+    const typographySummary = `${selectedArabicFont.shortName} · ${selectedEnglishFont.shortName} · ${typographySizeSummary}`;
+    const typographyIsDefault = arabicFont === 'amiri'
+        && englishFont === 'playfair'
+        && arabicSize === 'auto'
+        && englishSize === 'auto';
     const permalink = `${window.location.origin}/volume/${volume}/chapter/${chapterNum}#h-${hadith.hadith_num}`;
     const formatLabel = activeOutputMode === 'single-bilingual' ? 'Single bilingual' : 'Readable set';
     const styleLabel = cardStyle === 'minimal' ? 'Minimal' : 'Classic';
+
+    useEffect(() => {
+        setArabicSize('auto');
+        setEnglishSize('auto');
+        setCurrentPageIndex(0);
+    }, [hadith.hadith_num, volume]);
+
+    useEffect(() => {
+        if (arabicSize === 'larger' && !canUseArabicLarger) setArabicSize('auto');
+        if (englishSize === 'larger' && !canUseEnglishLarger) setEnglishSize('auto');
+    }, [arabicSize, canUseArabicLarger, canUseEnglishLarger, englishSize]);
 
     const generatePageDataUrls = async () => {
         await document.fonts.ready;
@@ -864,8 +1113,31 @@ export function HadithShareModal({
         storeSharePreference(SHARE_STYLE_STORAGE_KEY, style);
     };
 
+    const selectArabicFont = (font: ShareArabicFont) => {
+        setNotice(null);
+        setArabicFont(font);
+        storeSharePreference(SHARE_ARABIC_FONT_STORAGE_KEY, font);
+    };
+
+    const selectEnglishFont = (font: ShareEnglishFont) => {
+        setNotice(null);
+        setEnglishFont(font);
+        storeSharePreference(SHARE_ENGLISH_FONT_STORAGE_KEY, font);
+    };
+
+    const resetTypography = () => {
+        setNotice(null);
+        setArabicFont('amiri');
+        setEnglishFont('playfair');
+        setArabicSize('auto');
+        setEnglishSize('auto');
+        storeSharePreference(SHARE_ARABIC_FONT_STORAGE_KEY, 'amiri');
+        storeSharePreference(SHARE_ENGLISH_FONT_STORAGE_KEY, 'playfair');
+    };
+
     const handleClose = () => {
         setIsCustomizing(false);
+        setIsTypographyOpen(false);
         onClose();
     };
 
@@ -911,6 +1183,7 @@ export function HadithShareModal({
                                         theme={currentTheme}
                                         layout={cardLayout}
                                         cardStyle={cardStyle}
+                                        typography={typography}
                                         volume={volume}
                                         chapterTitle={chapterTitle}
                                         hadithNumber={hadith.hadith_num}
@@ -1044,6 +1317,81 @@ export function HadithShareModal({
                                                     </div>
                                                 </div>
 
+                                                <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setIsTypographyOpen(open => !open)}
+                                                        disabled={isGenerating || isSharing}
+                                                        aria-expanded={isTypographyOpen}
+                                                        aria-controls="share-typography-options"
+                                                        className="flex min-h-14 w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500 disabled:opacity-50 dark:hover:bg-slate-800"
+                                                    >
+                                                        <span className="min-w-0 flex-1">
+                                                            <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100">
+                                                                Typography
+                                                            </span>
+                                                            <span className="block truncate text-xs text-slate-500 dark:text-slate-400">
+                                                                {typographySummary}
+                                                            </span>
+                                                        </span>
+                                                        <ChevronDown
+                                                            className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${isTypographyOpen ? 'rotate-180' : ''}`}
+                                                            aria-hidden="true"
+                                                        />
+                                                    </button>
+
+                                                    <AnimatePresence initial={false}>
+                                                        {isTypographyOpen && (
+                                                            <motion.div
+                                                                id="share-typography-options"
+                                                                initial={{ height: 0, opacity: 0 }}
+                                                                animate={{ height: 'auto', opacity: 1 }}
+                                                                exit={{ height: 0, opacity: 0 }}
+                                                                transition={{ duration: 0.18, ease: 'easeOut' }}
+                                                                className="overflow-hidden"
+                                                            >
+                                                                <div className="space-y-2 border-t border-slate-200 p-2.5 dark:border-slate-700">
+                                                                    <TypographyLanguageControls
+                                                                        language="Arabic"
+                                                                        description="Font and text size"
+                                                                        font={arabicFont}
+                                                                        fontOptions={ARABIC_FONT_OPTIONS}
+                                                                        size={arabicSize}
+                                                                        canUseLarger={canUseArabicLarger}
+                                                                        disabled={isGenerating || isSharing}
+                                                                        onFontChange={selectArabicFont}
+                                                                        onSizeChange={setArabicSize}
+                                                                    />
+                                                                    <TypographyLanguageControls
+                                                                        language="English"
+                                                                        description="Font and text size"
+                                                                        font={englishFont}
+                                                                        fontOptions={ENGLISH_FONT_OPTIONS}
+                                                                        size={englishSize}
+                                                                        canUseLarger={canUseEnglishLarger}
+                                                                        disabled={isGenerating || isSharing}
+                                                                        onFontChange={selectEnglishFont}
+                                                                        onSizeChange={setEnglishSize}
+                                                                    />
+                                                                    <div className="flex items-center justify-between gap-3 px-1 pt-1">
+                                                                        <p className="text-[11px] leading-4 text-slate-500 dark:text-slate-400">
+                                                                            Auto is tuned to each hadith.
+                                                                        </p>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={resetTypography}
+                                                                            disabled={typographyIsDefault || isGenerating || isSharing}
+                                                                            className="min-h-9 shrink-0 rounded-md px-2.5 py-1.5 text-xs font-semibold text-primary-600 transition-colors hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-40 dark:text-primary-400 dark:hover:bg-primary-950/40"
+                                                                        >
+                                                                            Reset
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </motion.div>
+                                                        )}
+                                                    </AnimatePresence>
+                                                </div>
+
                                                 <div>
                                                     <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500">
                                                         Card colour
@@ -1118,7 +1466,7 @@ export function HadithShareModal({
                         >
                             {pages.map((page, index) => (
                                 <div
-                                    key={`${activeOutputMode}-${cardStyle}-${page.id}-${currentTheme.id}`}
+                                    key={`${activeOutputMode}-${cardStyle}-${page.id}-${currentTheme.id}-${arabicFont}-${englishFont}-${arabicSize}-${englishSize}`}
                                     style={{
                                         width: EXPORT_CARD_SIZE,
                                         ...(cardLayout === 'square' ? { height: EXPORT_CARD_SIZE } : {}),
@@ -1129,6 +1477,7 @@ export function HadithShareModal({
                                         theme={currentTheme}
                                         layout={cardLayout}
                                         cardStyle={cardStyle}
+                                        typography={typography}
                                         volume={volume}
                                         chapterTitle={chapterTitle}
                                         hadithNumber={hadith.hadith_num}
