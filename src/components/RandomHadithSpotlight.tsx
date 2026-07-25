@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { ArrowRight, BookOpen, Heart, Image as ImageIcon, Quote, RefreshCw } from 'lucide-react';
+import { ArrowRight, BookOpen, Heart, Image as ImageIcon, Quote, RefreshCw, Sparkle } from 'lucide-react';
 import { loadVolume } from '../lib/data';
 import type { Chapter, Hadith, Section, VolumeData } from '../lib/types';
 import { HadithShareModal } from './HadithShareModal';
@@ -319,7 +319,7 @@ export function RandomHadithSpotlight() {
                                         Read this section
                                         <span
                                             aria-hidden="true"
-                                            className="inline-flex transition-transform duration-200 group-hover:translate-x-1"
+                                            className="relative inline-flex transition-transform duration-200 group-hover:translate-x-1"
                                         >
                                             <motion.span
                                                 className="inline-flex origin-center"
@@ -329,6 +329,14 @@ export function RandomHadithSpotlight() {
                                                         : {
                                                             rotate: [0, 0, 90, 90, 0],
                                                             y: [0, 0, 2, 2, 0],
+                                                            scale: [1, 1, 1.05, 1.05, 1],
+                                                            filter: [
+                                                                'brightness(1) saturate(1) drop-shadow(0 0 0 rgba(56, 189, 248, 0))',
+                                                                'brightness(1) saturate(1) drop-shadow(0 0 0 rgba(56, 189, 248, 0))',
+                                                                'brightness(1.28) saturate(0.86) drop-shadow(0 0 4px rgba(56, 189, 248, 0.42))',
+                                                                'brightness(1.28) saturate(0.86) drop-shadow(0 0 4px rgba(56, 189, 248, 0.42))',
+                                                                'brightness(1) saturate(1) drop-shadow(0 0 0 rgba(56, 189, 248, 0))',
+                                                            ],
                                                         }
                                                 }
                                                 transition={{
@@ -342,6 +350,31 @@ export function RandomHadithSpotlight() {
                                             >
                                                 <ArrowRight size={18} />
                                             </motion.span>
+                                            <span className="pointer-events-none absolute -bottom-1 left-1/2 -translate-x-1/2">
+                                                <motion.span
+                                                    className="inline-flex text-gold-300 opacity-0"
+                                                    animate={
+                                                        prefersReducedMotion
+                                                            ? undefined
+                                                            : {
+                                                                opacity: [0, 0, 0.72, 0.52, 0],
+                                                                scale: [0.55, 0.55, 1, 0.76, 0.55],
+                                                                x: [-2, -2, 0, 2, 2],
+                                                                rotate: [-24, -24, 0, 18, 18],
+                                                            }
+                                                    }
+                                                    transition={{
+                                                        delay: 3.5,
+                                                        duration: 2.2,
+                                                        times: [0, 0.61, 0.7, 0.78, 1],
+                                                        ease: 'easeInOut',
+                                                        repeat: Infinity,
+                                                        repeatDelay: 5.8,
+                                                    }}
+                                                >
+                                                    <Sparkle size={7} strokeWidth={2.5} fill="currentColor" />
+                                                </motion.span>
+                                            </span>
                                         </span>
                                     </Link>
 
