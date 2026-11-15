@@ -2,10 +2,11 @@ import { Link, Outlet, NavLink } from 'react-router-dom';
 import { ThemeToggle } from './ThemeToggle';
 import { SearchBar } from './SearchBar';
 import { FontSettingsPanel } from './FontSettingsPanel';
-import { BookOpen, Heart } from 'lucide-react';
+import { BookOpen, Heart, MonitorPlay } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useFavorites } from '../contexts/FavoritesContext';
 import { cn } from '../lib/utils';
+import { enterFullscreen } from '../ambient/fullscreen';
 
 export function Layout() {
     const { favorites } = useFavorites();
@@ -30,6 +31,15 @@ export function Layout() {
                     </div>
 
                     <div className="flex items-center gap-2">
+                        <Link
+                            to="/ambient"
+                            onClick={enterFullscreen}
+                            title="Ambient display"
+                            aria-label="Ambient display"
+                            className="p-2 rounded-full transition-colors text-slate-500 dark:text-slate-400 hover:text-gold-600 hover:bg-gold-50 dark:hover:text-gold-300 dark:hover:bg-gold-900/20"
+                        >
+                            <MonitorPlay size={20} />
+                        </Link>
                         <NavLink
                             to="/favorites"
                             title="Favorites"
