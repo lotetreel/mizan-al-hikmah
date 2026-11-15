@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'mizan-al-hikmah-v1';
+const CACHE_VERSION = 'mizan-al-hikmah-v2';
 const APP_SHELL_CACHE = `${CACHE_VERSION}-shell`;
 const DATA_CACHE = `${CACHE_VERSION}-data`;
 
